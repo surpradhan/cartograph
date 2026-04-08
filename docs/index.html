@@ -204,16 +204,6 @@
       line-height: 1.6;
     }
 
-    /* Route progress indicator */
-    .route {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      color: var(--muted);
-      margin-bottom: 32px;
-      letter-spacing: 0.02em;
-    }
-    .route span { color: var(--amber); }
-
     /* Retry loop callout */
     .callout {
       background: var(--amber-g);
@@ -464,16 +454,6 @@
   <div class="container">
     <h2>How it works</h2>
     <p class="section-sub">Four nodes · One retry loop · One cited report</p>
-
-    <div class="route">
-      <span>◈</span>──●──●──● &nbsp; Planner
-      &nbsp;&nbsp;
-      ●──<span>◈</span>──●──● &nbsp; Searcher
-      &nbsp;&nbsp;
-      ●──●──<span>◈</span>──● &nbsp; Evaluator
-      &nbsp;&nbsp;
-      ●──●──●──<span>◈</span> &nbsp; Synthesizer
-    </div>
 
     <div class="pipeline">
       <div class="step">
