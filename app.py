@@ -166,6 +166,16 @@ tr.tr-body:hover {
 }
 tr.tr-body:hover td { color: #c8922a !important; }
 
+/* Controls row — stretch children to equal height */
+.controls-row { align-items: stretch !important; }
+.controls-row > div { display: flex !important; flex-direction: column !important; }
+.chart-btn { flex: 1 !important; }
+.chart-btn button { height: 100% !important; }
+
+/* Survey Depth — stretch pills across full row width */
+.depth-radio .wrap { display: flex !important; gap: 8px !important; }
+.depth-radio .wrap label { flex: 1 !important; justify-content: center !important; text-align: center !important; }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #0d0d0d; }
@@ -295,28 +305,27 @@ with gr.Blocks(title="Cartograph", theme=gr.themes.Soft(), css=CSS) as demo:
         "*Plants a pin. Surveys the terrain. Draws you a map.*"
     )
 
-    with gr.Row():
-        with gr.Column(scale=3):
-            query_box = gr.Textbox(
-                label="Territory to Map",
-                placeholder="e.g., Latest advances in on-device LLM inference",
-                lines=2,
-            )
-        with gr.Column(scale=1):
-            depth_radio = gr.Radio(
-                choices=list(DEPTH_MAP.keys()),
-                label="Survey Depth",
-                value="Standard (5)",
-            )
+    query_box = gr.Textbox(
+        label="Territory to Map",
+        placeholder="e.g., Latest advances in on-device LLM inference",
+        lines=2,
+    )
 
-    with gr.Row():
+    depth_radio = gr.Radio(
+        choices=list(DEPTH_MAP.keys()),
+        label="Survey Depth",
+        value="Standard (5)",
+        elem_classes="depth-radio",
+    )
+
+    with gr.Row(elem_classes="controls-row"):
         model_dropdown = gr.Dropdown(
             choices=_MODEL_CHOICES,
             value=_MODEL_DEFAULT,
             label="Model",
             scale=1,
         )
-        run_btn = gr.Button("Chart It", variant="primary", scale=3)
+        run_btn = gr.Button("Chart It", variant="primary", scale=3, elem_classes="chart-btn")
 
     status_box = gr.Textbox(
         label="Survey Log",
