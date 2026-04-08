@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cartograph — Autonomous Research Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black:   #0d0d0d;
+      --panel:   #1a1a1a;
+      --border:  #2e2e2e;
+      --amber:   #c8922a;
+      --amber-d: #a8721a;
+      --amber-g: rgba(200,146,42,0.08);
+      --cream:   #e8dcc8;
+      --muted:   #666666;
+      --teal:    #4a9b8e;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--black);
+      color: var(--cream);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    a { color: var(--teal); text-decoration: none; }
+    a:hover { color: #5ab8aa; text-decoration: underline; }
+
+    code, pre {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section { padding: 72px 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13,13,13,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+    }
+    .nav-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      color: var(--amber);
+      letter-spacing: 0.03em;
+    }
+    .nav-links { display: flex; gap: 28px; list-style: none; }
+    .nav-links a {
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--amber); text-decoration: none; }
+
+    /* ── Hero ── */
+    #hero {
+      padding: 100px 0 80px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    .hero-icon {
+      display: block;
+      margin: 0 auto 28px;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.8rem, 6vw, 4.2rem);
+      color: var(--amber);
+      line-height: 1.1;
+      margin-bottom: 20px;
+      letter-spacing: -0.01em;
+    }
+    .hero-tagline {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      color: var(--cream);
+      margin-bottom: 16px;
+      opacity: 0.9;
+    }
+    .hero-sub {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 40px;
+    }
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 28px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--amber) 0%, var(--amber-d) 100%);
+      color: var(--black);
+      border: none;
+      box-shadow: 0 2px 12px rgba(200,146,42,0.3);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 4px 20px rgba(200,146,42,0.45);
+      text-decoration: none;
+      color: var(--black);
+      transform: translateY(-1px);
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--amber);
+      border: 1px solid var(--amber);
+    }
+    .btn-outline:hover {
+      background: var(--amber-g);
+      text-decoration: none;
+      color: var(--amber);
+      transform: translateY(-1px);
+    }
+
+    /* ── Section headings ── */
+    h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.9rem;
+      color: var(--amber);
+      margin-bottom: 10px;
+    }
+    .section-sub {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 40px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── How it works — pipeline steps ── */
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+    .step {
+      background: var(--panel);
+      padding: 28px 22px;
+      transition: background 0.2s;
+    }
+    .step:hover { background: #222222; }
+    .step-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .step-title {
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--cream);
+      margin-bottom: 8px;
+    }
+    .step-desc {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* Route progress indicator */
+    .route {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 32px;
+      letter-spacing: 0.02em;
+    }
+    .route span { color: var(--amber); }
+
+    /* Retry loop callout */
+    .callout {
+      background: var(--amber-g);
+      border-left: 3px solid var(--amber);
+      border-radius: 0 4px 4px 0;
+      padding: 14px 20px;
+      font-size: 0.9rem;
+      color: var(--cream);
+    }
+    .callout strong { color: var(--amber); }
+
+    /* ── Architecture — inline flow diagram ── */
+    .flow-wrap { overflow-x: auto; padding: 8px 0 24px; }
+
+    .flow-main {
+      display: flex;
+      align-items: center;
+      min-width: 620px;
+      gap: 0;
+    }
+    .flow-pill {
+      flex: 0 0 auto;
+      background: var(--border);
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+    .flow-node {
+      flex: 1 1 0;
+      border: 1px solid var(--amber);
+      border-radius: 4px;
+      background: var(--panel);
+      padding: 14px 16px;
+      text-align: center;
+      transition: background 0.2s;
+      min-width: 120px;
+    }
+    .flow-node:hover { background: #222; }
+    .flow-node-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--amber);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .flow-node-name {
+      font-weight: 700;
+      font-size: 0.82rem;
+      color: var(--cream);
+      letter-spacing: 0.04em;
+    }
+    .flow-arrow {
+      flex: 0 0 auto;
+      color: var(--amber);
+      font-size: 1rem;
+      padding: 0 6px;
+      user-select: none;
+    }
+
+    /* Retry arc row */
+    .flow-retry {
+      display: flex;
+      align-items: flex-start;
+      min-width: 620px;
+      margin-top: 0;
+      position: relative;
+      height: 42px;
+    }
+    /* invisible spacers to align under SEARCHER and EVALUATOR */
+    .flow-retry-spacer-start { flex: 0 0 auto; } /* matches pill + arrow */
+    .flow-retry-spacer-planner { flex: 1 1 0; min-width: 120px; }
+    .flow-retry-mid {
+      flex: 1 1 0;
+      min-width: 120px;
+      border-left: 1px dashed var(--border);
+      border-bottom: 1px dashed var(--border);
+      border-radius: 0 0 0 4px;
+      height: 28px;
+      position: relative;
+    }
+    .flow-retry-arrow-col {
+      flex: 0 0 auto;
+      width: 13px; /* matches .flow-arrow padding width */
+    }
+    .flow-retry-right {
+      flex: 1 1 0;
+      min-width: 120px;
+      border-right: 1px dashed var(--border);
+      border-bottom: 1px dashed var(--border);
+      border-radius: 0 0 4px 0;
+      height: 28px;
+    }
+    .flow-retry-label {
+      position: absolute;
+      bottom: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      color: var(--muted);
+      white-space: nowrap;
+      letter-spacing: 0.04em;
+    }
+    .flow-retry-arrowhead {
+      color: var(--amber);
+      font-size: 0.75rem;
+      margin-top: 28px;
+      display: block;
+      text-align: center;
+    }
+
+    .arch-link {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .arch-link a { color: var(--teal); }
+
+    /* ── Tech stack table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    thead tr {
+      background: var(--amber);
+    }
+    thead th {
+      color: var(--black);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.75rem;
+      padding: 10px 16px;
+      text-align: left;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    tbody tr:hover { background: var(--amber-g); }
+    tbody td {
+      padding: 12px 16px;
+      color: var(--cream);
+      vertical-align: top;
+    }
+    tbody td:first-child { color: var(--amber); font-weight: 600; }
+    tbody td:last-child { color: var(--muted); font-size: 0.85rem; }
+
+    /* ── Quick start ── */
+    .code-block {
+      background: #111111;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 24px 28px;
+      overflow-x: auto;
+      font-size: 0.88rem;
+      line-height: 1.8;
+    }
+    .code-block .comment { color: #555555; }
+    .code-block .cmd     { color: var(--cream); }
+    .code-block .prompt  { color: var(--amber); user-select: none; }
+
+    /* ── Footer ── */
+    footer {
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--amber); text-decoration: none; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .pipeline { grid-template-columns: 1fr; }
+      .hero-actions { flex-direction: column; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav>
+  <div class="nav-inner">
+    <span class="nav-logo">
+      <svg width="16" height="16" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle; margin-right:7px;" aria-hidden="true">
+        <circle cx="26" cy="26" r="9" stroke="#c8922a" stroke-width="3.5"/>
+        <line x1="26" y1="4"  x2="26" y2="14" stroke="#c8922a" stroke-width="3.5" stroke-linecap="round"/>
+        <line x1="26" y1="38" x2="26" y2="48" stroke="#c8922a" stroke-width="3.5" stroke-linecap="round"/>
+        <line x1="4"  y1="26" x2="14" y2="26" stroke="#c8922a" stroke-width="3.5" stroke-linecap="round"/>
+        <line x1="38" y1="26" x2="48" y2="26" stroke="#c8922a" stroke-width="3.5" stroke-linecap="round"/>
+        <circle cx="26" cy="26" r="2.5" fill="#c8922a"/>
+      </svg>Cartograph</span>
+    <ul class="nav-links">
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#stack">Stack</a></li>
+      <li><a href="#quickstart">Quick start</a></li>
+      <li><a href="https://github.com/surabhi/cartograph">GitHub</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section id="hero">
+  <div class="container">
+    <!-- Cartographic coordinate crosshair — amber, inline SVG -->
+    <svg class="hero-icon" width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- Circle -->
+      <circle cx="26" cy="26" r="9" stroke="#c8922a" stroke-width="2"/>
+      <!-- Top arm -->
+      <line x1="26" y1="4"  x2="26" y2="14" stroke="#c8922a" stroke-width="2" stroke-linecap="round"/>
+      <!-- Bottom arm -->
+      <line x1="26" y1="38" x2="26" y2="48" stroke="#c8922a" stroke-width="2" stroke-linecap="round"/>
+      <!-- Left arm -->
+      <line x1="4"  y1="26" x2="14" y2="26" stroke="#c8922a" stroke-width="2" stroke-linecap="round"/>
+      <!-- Right arm -->
+      <line x1="38" y1="26" x2="48" y2="26" stroke="#c8922a" stroke-width="2" stroke-linecap="round"/>
+      <!-- Centre dot -->
+      <circle cx="26" cy="26" r="2.5" fill="#c8922a"/>
+    </svg>
+    <h1>Cartograph</h1>
+    <p class="hero-tagline">Plants a pin. Surveys the terrain. Draws you a map.</p>
+    <p class="hero-sub">Autonomous research agent · Fully local · Zero API keys</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#quickstart">Get started</a>
+      <a class="btn btn-outline" href="https://github.com/surabhi/cartograph">View on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ── -->
+<section id="how-it-works">
+  <div class="container">
+    <h2>How it works</h2>
+    <p class="section-sub">Four nodes · One retry loop · One cited report</p>
+
+    <div class="route">
+      <span>◈</span>──●──●──● &nbsp; Planner
+      &nbsp;&nbsp;
+      ●──<span>◈</span>──●──● &nbsp; Searcher
+      &nbsp;&nbsp;
+      ●──●──<span>◈</span>──● &nbsp; Evaluator
+      &nbsp;&nbsp;
+      ●──●──●──<span>◈</span> &nbsp; Synthesizer
+    </div>
+
+    <div class="pipeline">
+      <div class="step">
+        <div class="step-num">Step 01 · Planner</div>
+        <div class="step-title">Charting the route</div>
+        <div class="step-desc">Decomposes your topic into 3–7 focused, non-overlapping sub-questions using the configured LLM.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 02 · Searcher</div>
+        <div class="step-title">Surveying the terrain</div>
+        <div class="step-desc">Runs DuckDuckGo searches for each sub-question. Deduplicates results via FAISS cosine similarity before storing them.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 03 · Evaluator</div>
+        <div class="step-title">Verifying landmarks</div>
+        <div class="step-desc">Scores every source 1–5 for relevance. Checks that each sub-question has enough high-quality sources before proceeding.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 04 · Synthesizer</div>
+        <div class="step-title">Drawing the map</div>
+        <div class="step-desc">Generates a structured Markdown report with inline <code>[N]</code> citations and an auto-appended References section.</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Self-correcting loop —</strong> if the Evaluator finds coverage thin,
+      it routes back to the Searcher for another survey cycle (up to
+      <code>max_retries</code> times) before falling through to synthesis.
+    </div>
+  </div>
+</section>
+
+<!-- ── Architecture ── -->
+<section id="architecture">
+  <div class="container">
+    <h2>Architecture</h2>
+    <p class="section-sub">LangGraph StateGraph with conditional retry edge</p>
+    <div class="flow-wrap">
+      <!-- Main pipeline row -->
+      <div class="flow-main">
+        <div class="flow-pill">START</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="flow-node-num">01 · Planner</div>
+          <div class="flow-node-name">Charting the route</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" id="fn-searcher">
+          <div class="flow-node-num">02 · Searcher</div>
+          <div class="flow-node-name">Surveying the terrain</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" id="fn-evaluator">
+          <div class="flow-node-num">03 · Evaluator</div>
+          <div class="flow-node-name">Verifying landmarks</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="flow-node-num">04 · Synthesizer</div>
+          <div class="flow-node-name">Drawing the map</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-pill">END</div>
+      </div>
+
+      <!-- Retry arc: from Evaluator back to Searcher -->
+      <div class="flow-retry">
+        <!-- spacer: START pill + arrow -->
+        <div class="flow-retry-spacer-start" style="width: calc(54px + 13px + 6px + 6px)"></div>
+        <!-- spacer: Planner node + arrow -->
+        <div class="flow-retry-spacer-planner"></div>
+        <div class="flow-retry-arrow-col"><span class="flow-retry-arrowhead">↑</span></div>
+        <!-- arc bottom from Searcher to Evaluator -->
+        <div class="flow-retry-mid" style="position:relative;">
+          <span class="flow-retry-label">coverage insufficient · retry</span>
+        </div>
+        <div class="flow-retry-arrow-col"></div>
+        <div class="flow-retry-right"></div>
+        <!-- spacer: arrow + Synthesizer + arrow + END -->
+      </div>
+    </div>
+
+    <p class="arch-link">
+      Full node breakdown and design decisions →
+      <a href="architecture.md">architecture.md</a>
+    </p>
+  </div>
+</section>
+
+<!-- ── Tech stack ── -->
+<section id="stack">
+  <div class="container">
+    <h2>Tech stack</h2>
+    <p class="section-sub">Local-first · No vendor lock-in</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Layer</th>
+          <th>Tool</th>
+          <th>Why</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Orchestration</td>
+          <td><a href="https://github.com/langchain-ai/langgraph">LangGraph</a></td>
+          <td>Production-grade; native cycles and conditional routing</td>
+        </tr>
+        <tr>
+          <td>LLM</td>
+          <td><a href="https://ollama.com">Ollama</a></td>
+          <td>Fully local — zero API cost, complete privacy</td>
+        </tr>
+        <tr>
+          <td>Web search</td>
+          <td><a href="https://pypi.org/project/ddgs/">ddgs</a></td>
+          <td>No API key required; anyone can clone and run</td>
+        </tr>
+        <tr>
+          <td>Deduplication</td>
+          <td><a href="https://github.com/facebookresearch/faiss">FAISS</a> + <a href="https://www.sbert.net/">MiniLM</a></td>
+          <td>Semantic similarity prevents redundant sources across sub-queries</td>
+        </tr>
+        <tr>
+          <td>UI</td>
+          <td><a href="https://gradio.app">Gradio</a></td>
+          <td>Streaming progress, zero frontend code</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── Quick start ── -->
+<section id="quickstart">
+  <div class="container">
+    <h2>Quick start</h2>
+    <p class="section-sub">Prerequisites: Python 3.11+ · Ollama installed</p>
+    <div class="code-block">
+      <div><span class="comment"># Clone and install</span></div>
+      <div><span class="prompt">$ </span><span class="cmd">git clone https://github.com/surabhi/cartograph.git &amp;&amp; cd cartograph</span></div>
+      <div><span class="prompt">$ </span><span class="cmd">uv venv &amp;&amp; source .venv/bin/activate</span></div>
+      <div><span class="prompt">$ </span><span class="cmd">uv sync</span></div>
+      <br />
+      <div><span class="comment"># Pull a model and start</span></div>
+      <div><span class="prompt">$ </span><span class="cmd">ollama pull llama3.1</span></div>
+      <div><span class="prompt">$ </span><span class="cmd">python app.py</span></div>
+      <br />
+      <div><span class="comment"># Open http://localhost:7860</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="container">
+    Powered by <a href="https://github.com/langchain-ai/langgraph">LangGraph</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/surabhi/cartograph">GitHub</a>
+    &nbsp;·&nbsp;
+    <a href="architecture.md">Architecture</a>
+  </div>
+</footer>
+
+</body>
+</html>

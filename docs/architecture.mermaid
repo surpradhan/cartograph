@@ -1,0 +1,21 @@
+flowchart TD
+    START([START]) --> PLANNER
+
+    PLANNER["🧠 PLANNER\nDecompose query → 3-5 sub-questions"]
+    SEARCHER["🔍 SEARCHER\nParallel DuckDuckGo searches\nFAISS dedup"]
+    EVALUATOR["⚖️ EVALUATOR\nScore sources 1–5\nCheck coverage per sub-question"]
+    SYNTHESIZER["📝 SYNTHESIZER\nGenerate cited Markdown report"]
+    END_NODE([END])
+
+    PLANNER --> SEARCHER
+    SEARCHER --> EVALUATOR
+    EVALUATOR -->|"coverage sufficient\nOR retries exhausted"| SYNTHESIZER
+    EVALUATOR -->|"coverage insufficient\nAND retries remain"| SEARCHER
+    SYNTHESIZER --> END_NODE
+
+    style PLANNER fill:#4A90D9,color:#fff
+    style SEARCHER fill:#50C878,color:#fff
+    style EVALUATOR fill:#F4A460,color:#fff
+    style SYNTHESIZER fill:#9B59B6,color:#fff
+    style START fill:#2C3E50,color:#fff
+    style END_NODE fill:#2C3E50,color:#fff
