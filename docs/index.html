@@ -298,6 +298,14 @@
       height: 28px;
       position: relative;
     }
+    .flow-retry-mid::before {
+      content: '↑';
+      position: absolute;
+      left: -8px;
+      top: -18px;
+      color: var(--amber);
+      font-size: 0.8rem;
+    }
     .flow-retry-arrow-col {
       flex: 0 0 auto;
       width: 13px; /* matches .flow-arrow padding width */
@@ -531,20 +539,25 @@
         <div class="flow-pill">END</div>
       </div>
 
-      <!-- Retry arc: from Evaluator back to Searcher -->
+      <!-- Retry arc: Evaluator → back to Searcher -->
+      <!-- Uses visibility:hidden ghosts to match the main row's flex widths exactly -->
       <div class="flow-retry">
-        <!-- spacer: START pill + arrow -->
-        <div class="flow-retry-spacer-start" style="width: calc(54px + 13px + 6px + 6px)"></div>
-        <!-- spacer: Planner node + arrow -->
-        <div class="flow-retry-spacer-planner"></div>
-        <div class="flow-retry-arrow-col"><span class="flow-retry-arrowhead">↑</span></div>
-        <!-- arc bottom from Searcher to Evaluator -->
-        <div class="flow-retry-mid" style="position:relative;">
+        <div class="flow-pill"   style="visibility:hidden">START</div>
+        <div class="flow-arrow"  style="visibility:hidden">→</div>
+        <div class="flow-node"   style="visibility:hidden; border:none;"></div>
+        <div class="flow-arrow"  style="visibility:hidden">→</div>
+        <!-- Left edge of arc — under Searcher -->
+        <div class="flow-retry-mid">
           <span class="flow-retry-label">coverage insufficient · retry</span>
         </div>
-        <div class="flow-retry-arrow-col"></div>
+        <div class="flow-arrow"  style="visibility:hidden; border-bottom:1px dashed var(--border);">→</div>
+        <!-- Right edge of arc — under Evaluator -->
         <div class="flow-retry-right"></div>
-        <!-- spacer: arrow + Synthesizer + arrow + END -->
+        <!-- Ghost spacers to cap the arc at Evaluator -->
+        <div class="flow-arrow"  style="visibility:hidden">→</div>
+        <div class="flow-node"   style="visibility:hidden; border:none;"></div>
+        <div class="flow-arrow"  style="visibility:hidden">→</div>
+        <div class="flow-pill"   style="visibility:hidden">END</div>
       </div>
     </div>
 
