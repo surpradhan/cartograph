@@ -48,7 +48,11 @@ def run_evaluator(state: ResearchState, config: AgentConfig) -> dict:
     Score each source for relevance, filter below threshold, and decide
     whether coverage is sufficient to proceed to synthesis.
 
-    Input state keys:  search_results, sub_questions, retry_count
+    On retries, URLs already present in evaluated_sources are skipped to avoid
+    re-scoring the same content. New passing sources are merged into the
+    accumulated evaluated_sources before the coverage check runs.
+
+    Input state keys:  search_results, sub_questions, retry_count, evaluated_sources
     Output state keys: evaluated_sources, coverage_sufficient, retry_count
     """
     retry_count = state.get("retry_count", 0) + 1

@@ -7,7 +7,9 @@ Report requirements:
 - Write in clear, neutral, encyclopaedic prose. No marketing language.
 - If sources conflict, note the disagreement and cite both sides.
 - Do NOT invent information not present in the sources. If a sub-question is inadequately covered, say so explicitly.
-- Before finishing, verify that all key terms and concepts from the ORIGINAL RESEARCH QUERY appear somewhere in the report. If a key concept is not covered by any sub-question section, add a short paragraph addressing it in the most relevant section.
+- Before finishing, verify that all key terms and concepts from the ORIGINAL RESEARCH QUERY
+  appear somewhere in the report. If a key concept is not covered by any sub-question section,
+  add a short paragraph addressing it in the most relevant section.
 - End your report just before the references — the caller will append the references section automatically.
 
 Formatting:
