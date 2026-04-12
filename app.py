@@ -181,6 +181,19 @@ tr.tr-body:hover td { color: #c8922a !important; }
 ::-webkit-scrollbar-track { background: #0d0d0d; }
 ::-webkit-scrollbar-thumb { background: #2e2e2e; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #c8922a; }
+
+/* Bottom padding so footer is never clipped */
+.gradio-container { padding-bottom: 48px !important; }
+
+/* Survey Depth pills — never wrap, shrink text on very narrow screens */
+.depth-radio .wrap { flex-wrap: nowrap !important; }
+@media (max-width: 500px) {
+    .depth-radio .wrap label {
+        font-size: 0.72rem !important;
+        padding: 4px 6px !important;
+        min-width: 0 !important;
+    }
+}
 """
 
 
@@ -198,6 +211,32 @@ def _available_models() -> tuple[list[str], str]:
 
 
 _MODEL_CHOICES, _MODEL_DEFAULT = _available_models()
+
+# ── Page-load JS ──────────────────────────────────────────────────────────────
+# Gradio doesn't wire aria-labels to its inputs; inject them for screen readers.
+_PAGE_JS = """
+function addAriaLabels() {
+    const textareas = document.querySelectorAll('textarea');
+    if (textareas[0] && !textareas[0].getAttribute('aria-label'))
+        textareas[0].setAttribute('aria-label', 'Territory to Map');
+    if (textareas[1] && !textareas[1].getAttribute('aria-label'))
+        textareas[1].setAttribute('aria-label', 'Survey Log');
+    const radios = document.querySelectorAll('.depth-radio input[type="radio"]');
+    const depthLabels = ['Quick (3)', 'Standard (5)', 'Deep (7)'];
+    radios.forEach((r, i) => {
+        if (!r.getAttribute('aria-label') && depthLabels[i])
+            r.setAttribute('aria-label', 'Survey Depth: ' + depthLabels[i]);
+    });
+}
+
+const _cartographObserver = new MutationObserver(() => {
+    addAriaLabels();
+    const labelled = document.querySelectorAll('.depth-radio input[type="radio"][aria-label]');
+    if (labelled.length === 3) _cartographObserver.disconnect();
+});
+_cartographObserver.observe(document.body, { childList: true, subtree: true });
+addAriaLabels();
+"""
 
 
 def _status_line(node: str, detail: str = "", retry: int = 0, max_retries: int = 2) -> str:
@@ -299,7 +338,7 @@ def research(query: str, depth: str, model: str):
 
 # ── UI ────────────────────────────────────────────────────────────────────────
 
-with gr.Blocks(title="Cartograph", theme=gr.themes.Soft(), css=CSS) as demo:
+with gr.Blocks(title="Cartograph") as demo:
     gr.Markdown(
         "# ◈ Cartograph\n"
         "*Plants a pin. Surveys the terrain. Draws you a map.*"
@@ -308,7 +347,7 @@ with gr.Blocks(title="Cartograph", theme=gr.themes.Soft(), css=CSS) as demo:
     query_box = gr.Textbox(
         label="Territory to Map",
         placeholder="e.g., Latest advances in on-device LLM inference",
-        lines=2,
+        lines=1,
     )
 
     depth_radio = gr.Radio(
@@ -330,7 +369,7 @@ with gr.Blocks(title="Cartograph", theme=gr.themes.Soft(), css=CSS) as demo:
     status_box = gr.Textbox(
         label="Survey Log",
         interactive=False,
-        lines=4,
+        lines=2,  # keep page height ≤ viewport so controls stay visible after example click
         placeholder="The survey will appear here once you plant a pin…",
     )
 
@@ -360,4 +399,4 @@ with gr.Blocks(title="Cartograph", theme=gr.themes.Soft(), css=CSS) as demo:
     )
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(theme=gr.themes.Soft(), css=CSS, js=_PAGE_JS)
