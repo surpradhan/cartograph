@@ -185,8 +185,6 @@ tr.tr-body:hover td { color: #c8922a !important; }
 /* Bottom padding so footer is never clipped */
 .gradio-container { padding-bottom: 48px !important; }
 
-
-
 /* Survey Depth pills — never wrap, shrink text on very narrow screens */
 .depth-radio .wrap { flex-wrap: nowrap !important; }
 @media (max-width: 500px) {
@@ -223,7 +221,7 @@ function addAriaLabels() {
         textareas[0].setAttribute('aria-label', 'Territory to Map');
     if (textareas[1] && !textareas[1].getAttribute('aria-label'))
         textareas[1].setAttribute('aria-label', 'Survey Log');
-    const radios = document.querySelectorAll('input[type="radio"]');
+    const radios = document.querySelectorAll('.depth-radio input[type="radio"]');
     const depthLabels = ['Quick (3)', 'Standard (5)', 'Deep (7)'];
     radios.forEach((r, i) => {
         if (!r.getAttribute('aria-label') && depthLabels[i])
@@ -231,7 +229,11 @@ function addAriaLabels() {
     });
 }
 
-const _cartographObserver = new MutationObserver(addAriaLabels);
+const _cartographObserver = new MutationObserver(() => {
+    addAriaLabels();
+    const labelled = document.querySelectorAll('.depth-radio input[type="radio"][aria-label]');
+    if (labelled.length === 3) _cartographObserver.disconnect();
+});
 _cartographObserver.observe(document.body, { childList: true, subtree: true });
 addAriaLabels();
 """
@@ -367,7 +369,7 @@ with gr.Blocks(title="Cartograph") as demo:
     status_box = gr.Textbox(
         label="Survey Log",
         interactive=False,
-        lines=2,
+        lines=2,  # keep page height ≤ viewport so controls stay visible after example click
         placeholder="The survey will appear here once you plant a pin…",
     )
 
