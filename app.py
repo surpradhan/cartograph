@@ -182,8 +182,13 @@ tr.tr-body:hover td { color: #c8922a !important; }
 ::-webkit-scrollbar-thumb { background: #2e2e2e; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #c8922a; }
 
-/* Bottom padding so footer is never clipped */
-.gradio-container { padding-bottom: 48px !important; }
+/* Full-width layout + bottom padding so footer is never clipped */
+.gradio-container {
+    max-width: 100% !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+    padding-bottom: 48px !important;
+}
 
 /* Survey Depth pills — never wrap, shrink text on very narrow screens */
 .depth-radio .wrap { flex-wrap: nowrap !important; }
