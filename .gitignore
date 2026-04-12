@@ -55,6 +55,9 @@ flagged/
 cartograph-build-plan.md
 CLAUDE.md
 
+# Eval results (keep the directory, ignore run outputs)
+evals/results/*.json
+
 
 
 

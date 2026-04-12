@@ -1,0 +1,57 @@
+[
+  {
+    "id": "mrna_vaccines",
+    "query": "How do mRNA vaccines work and what diseases might they treat next?",
+    "depth": "Standard (5)",
+    "expected_sub_questions": [3, 6],
+    "min_sources": 4,
+    "min_report_words": 300,
+    "max_report_words": 3000,
+    "required_topics": ["mRNA", "vaccine", "immune", "protein"],
+    "forbidden_topics": []
+  },
+  {
+    "id": "bronze_age_collapse",
+    "query": "What caused the Bronze Age Collapse around 1200 BCE?",
+    "depth": "Quick (3)",
+    "expected_sub_questions": [2, 4],
+    "min_sources": 3,
+    "min_report_words": 200,
+    "max_report_words": 2000,
+    "required_topics": ["Bronze Age", "collapse", "civilization", "Mediterranean"],
+    "forbidden_topics": []
+  },
+  {
+    "id": "four_day_work_week",
+    "query": "Economic and social effects of a four-day work week",
+    "depth": "Standard (5)",
+    "expected_sub_questions": [3, 6],
+    "min_sources": 4,
+    "min_report_words": 300,
+    "max_report_words": 3000,
+    "required_topics": ["productivity", "work week", "employee", "four-day"],
+    "forbidden_topics": []
+  },
+  {
+    "id": "room_temp_superconductors",
+    "query": "State of the art in room-temperature superconductors",
+    "depth": "Deep (7)",
+    "expected_sub_questions": [5, 8],
+    "min_sources": 5,
+    "min_report_words": 400,
+    "max_report_words": 4000,
+    "required_topics": ["superconductor", "room temperature", "resistance"],
+    "forbidden_topics": []
+  },
+  {
+    "id": "gut_microbiome_mental_health",
+    "query": "How does the gut microbiome influence mental health?",
+    "depth": "Standard (5)",
+    "expected_sub_questions": [3, 6],
+    "min_sources": 4,
+    "min_report_words": 300,
+    "max_report_words": 3000,
+    "required_topics": ["microbiome", "gut", "mental health", "brain", "bacteria"],
+    "forbidden_topics": []
+  }
+]
