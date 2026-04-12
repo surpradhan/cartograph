@@ -51,13 +51,26 @@ def run_evaluator(state: ResearchState, config: AgentConfig) -> dict:
     Input state keys:  search_results, sub_questions, retry_count
     Output state keys: evaluated_sources, coverage_sufficient, retry_count
     """
-    search_results = state["search_results"]
     retry_count = state.get("retry_count", 0) + 1
 
+    # Deduplicate across retries: skip URLs already present in evaluated_sources
+    already_evaluated_urls = {src.get("url") for src in state.get("evaluated_sources", [])}
+    search_results = [
+        s for s in state["search_results"]
+        if s.get("url") not in already_evaluated_urls
+    ]
+    if already_evaluated_urls and len(search_results) < len(state["search_results"]):
+        logger.info(
+            "Evaluator: skipped %d already-evaluated URL(s) from prior retries",
+            len(state["search_results"]) - len(search_results),
+        )
+
     if not search_results:
-        logger.warning("Evaluator received no search results; marking coverage as insufficient")
+        logger.warning(
+            "Evaluator received no new search results; carrying forward prior evaluated sources"
+        )
         return {
-            "evaluated_sources": [],
+            "evaluated_sources": state.get("evaluated_sources", []),
             "coverage_sufficient": False,
             "retry_count": retry_count,
         }
@@ -93,20 +106,26 @@ def run_evaluator(state: ResearchState, config: AgentConfig) -> dict:
         len(evaluated), len(scored), config.min_relevance_score,
     )
 
-    # Coverage check: each sub-question must have at least min_sources_per_question good sources
-    sub_q_counts = Counter(src.get("sub_question") for src in evaluated)
+    # Carry forward sources from previous retries so coverage compounds across retries
+    all_evaluated = state.get("evaluated_sources", []) + evaluated
+
+    # Re-run coverage check against the full accumulated set
+    sub_q_counts = Counter(src.get("sub_question") for src in all_evaluated)
     coverage_sufficient = all(
         sub_q_counts.get(q, 0) >= config.min_sources_per_question
         for q in state["sub_questions"]
     )
-    covered = sum(1 for q in state["sub_questions"] if sub_q_counts.get(q, 0) >= config.min_sources_per_question)
+    covered = sum(
+        1 for q in state["sub_questions"]
+        if sub_q_counts.get(q, 0) >= config.min_sources_per_question
+    )
     logger.info(
-        "Coverage: %d/%d sub-questions have >=%d sources — sufficient=%s",
+        "Coverage (cumulative): %d/%d sub-questions have >=%d sources — sufficient=%s",
         covered, len(state["sub_questions"]), config.min_sources_per_question, coverage_sufficient,
     )
 
     return {
-        "evaluated_sources": evaluated,
+        "evaluated_sources": all_evaluated,
         "coverage_sufficient": coverage_sufficient,
         "retry_count": retry_count,
     }
