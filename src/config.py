@@ -14,7 +14,7 @@ class AgentConfig:
 
     # Evaluation
     min_relevance_score: int = 3
-    min_sources_per_question: int = 2
+    min_sources_per_question: int = 1  # raise to 2 for stricter coverage on broad topics
     max_retries: int = 2
 
     # FAISS

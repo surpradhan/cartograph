@@ -26,7 +26,9 @@ def run_planner(state: ResearchState, config: AgentConfig) -> dict:
         # Fall back to the query itself as the sole sub-question
         return {"sub_questions": [state["query"]]}
 
-    llm = ChatOllama(model=config.model_name, temperature=config.temperature, timeout=config.llm_timeout)
+    llm = ChatOllama(
+        model=config.model_name, temperature=config.temperature, timeout=config.llm_timeout
+    )
 
     try:
         response = llm.invoke([

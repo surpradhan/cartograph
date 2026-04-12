@@ -61,7 +61,9 @@ def run_synthesizer(state: ResearchState, config: AgentConfig) -> dict:
             "Do NOT include a References or Sources section at the end."
         )
 
-    llm = ChatOllama(model=config.model_name, temperature=config.temperature, timeout=config.llm_timeout)
+    llm = ChatOllama(
+        model=config.model_name, temperature=config.temperature, timeout=config.llm_timeout
+    )
     citation_context, references = _build_sources_block(sources, config.snippet_max_chars)
 
     user_message = (
