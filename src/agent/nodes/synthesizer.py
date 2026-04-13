@@ -101,13 +101,15 @@ def run_synthesizer(state: ResearchState, config: AgentConfig) -> dict:
         logger.warning("LLM included a References section despite instructions; stripped it")
 
     # Enforce citations: if the LLM ignored the [N] instruction, retry with a stricter prompt
-    if len(re.findall(r"\[\d+\]", body)) < 2:
+    original_citation_count = len(re.findall(r"\[\d+\]", body))
+    if original_citation_count < 2:
         logger.warning(
-            "Synthesizer: report has fewer than 2 inline citations; retrying with stricter prompt"
+            "Synthesizer: report has %d inline citation(s); retrying with stricter prompt",
+            original_citation_count,
         )
         strict_message = (
             user_message
-            + "\n\nIMPORTANT: Your previous response contained no inline citations. "
+            + "\n\nIMPORTANT: Your previous response had too few inline citations. "
             "You MUST add [N] citation markers (e.g. [1], [2]) after every factual claim. "
             "Every sentence stating a fact must be followed by at least one [N] marker."
         )
@@ -120,7 +122,7 @@ def run_synthesizer(state: ResearchState, config: AgentConfig) -> dict:
             if _REFERENCES_HEADING in retry_body:
                 retry_body = retry_body[:retry_body.index(_REFERENCES_HEADING)].rstrip()
             retry_citations = re.findall(r"\[\d+\]", retry_body)
-            if len(retry_citations) > len(re.findall(r"\[\d+\]", body)):
+            if len(retry_citations) > original_citation_count:
                 body = retry_body
                 logger.info(
                     "Synthesizer citation retry succeeded (%d citation(s))", len(retry_citations)

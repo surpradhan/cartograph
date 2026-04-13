@@ -242,6 +242,28 @@ def test_evaluator_coverage_satisfied_in_early_return(mock_llm_cls, config):
 
 
 @patch("src.agent.nodes.evaluator.ChatOllama")
+def test_evaluator_coverage_still_false_in_early_return_when_prior_insufficient(mock_llm_cls, config):
+    """When no new results arrive and prior sources don't cover all sub-questions, stays False."""
+    from src.agent.nodes.evaluator import run_evaluator
+
+    # Prior only covers Q1 — Q2 has nothing
+    prior_q1 = {**_make_source("Q1", "https://q1.com"), "relevance_score": 4, "score_reason": "Good"}
+
+    state = {
+        "query": "test",
+        "search_results": [_make_source("Q1", "https://q1.com")],  # already evaluated
+        "sub_questions": ["Q1", "Q2"],
+        "evaluated_sources": [prior_q1],
+        "retry_count": 1,
+    }
+    result = run_evaluator(state, config)
+
+    assert result["coverage_sufficient"] is False
+    assert result["evaluated_sources"] == [prior_q1]
+    mock_llm_cls.assert_not_called()
+
+
+@patch("src.agent.nodes.evaluator.ChatOllama")
 def test_evaluator_skips_already_evaluated_urls(mock_llm_cls, config):
     """URLs already in evaluated_sources are not re-scored on a subsequent retry."""
     mock_llm = MagicMock()
