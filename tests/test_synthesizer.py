@@ -109,3 +109,40 @@ def test_synthesizer_missing_prompt_uses_fallback_prompt(mock_llm_cls, mock_path
 
     assert mock_llm.invoke.called
     assert "Fallback report body." in result["report"]
+
+
+@patch("src.agent.nodes.synthesizer.ChatOllama")
+def test_synthesizer_retries_when_no_citations(mock_llm_cls, config):
+    """If the first LLM response has no [N] citations, a second call is made with a stricter prompt."""
+    mock_llm = MagicMock()
+    # First call: no citations; second call: proper citations
+    mock_llm.invoke.side_effect = [
+        MagicMock(content="## Overview\n\nSome prose with no citations at all."),
+        MagicMock(content="## Overview\n\nSome prose with a citation [1]."),
+    ]
+    mock_llm_cls.return_value = mock_llm
+
+    from src.agent.nodes.synthesizer import run_synthesizer
+
+    result = run_synthesizer(_base_state([_make_source()]), config)
+
+    assert mock_llm.invoke.call_count == 2
+    assert "[1]" in result["report"]
+
+
+@patch("src.agent.nodes.synthesizer.ChatOllama")
+def test_synthesizer_keeps_original_if_retry_also_lacks_citations(mock_llm_cls, config):
+    """If the citation retry also fails to produce [N] markers, the original body is kept."""
+    mock_llm = MagicMock()
+    mock_llm.invoke.side_effect = [
+        MagicMock(content="## Overview\n\nNo citations here."),
+        MagicMock(content="## Overview\n\nStill no citations."),
+    ]
+    mock_llm_cls.return_value = mock_llm
+
+    from src.agent.nodes.synthesizer import run_synthesizer
+
+    result = run_synthesizer(_base_state([_make_source()]), config)
+
+    assert mock_llm.invoke.call_count == 2
+    assert "No citations here." in result["report"]
