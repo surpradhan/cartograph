@@ -73,9 +73,16 @@ def run_evaluator(state: ResearchState, config: AgentConfig) -> dict:
         logger.warning(
             "Evaluator received no new search results; carrying forward prior evaluated sources"
         )
+        prior = state.get("evaluated_sources", [])
+        # Coverage may already be satisfied by previously accumulated sources
+        prior_counts = Counter(src.get("sub_question") for src in prior)
+        coverage_sufficient = all(
+            prior_counts.get(q, 0) >= config.min_sources_per_question
+            for q in state["sub_questions"]
+        )
         return {
-            "evaluated_sources": state.get("evaluated_sources", []),
-            "coverage_sufficient": False,
+            "evaluated_sources": prior,
+            "coverage_sufficient": coverage_sufficient,
             "retry_count": retry_count,
         }
 

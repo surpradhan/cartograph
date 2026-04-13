@@ -55,9 +55,18 @@ class SourceCache:
         return self.model.encode([text], normalize_embeddings=True)
 
     def is_duplicate(self, text: str, url: str) -> bool:
-        """Return True if a semantically similar source is already cached."""
+        """Return True if a semantically similar source is already cached.
+
+        URL equality is checked first — an exact URL match is always a duplicate
+        regardless of whether FAISS is available. Semantic similarity is a
+        secondary check for near-duplicate content at different URLs.
+        """
+        # Exact URL match — fast, definitive, works in both FAISS and fallback modes
+        if url and url in self.stored_urls:
+            return True
+
         if not _FAISS_AVAILABLE or self.index is None:
-            return url in self.stored_urls
+            return False  # URL already checked above; no FAISS to fall back to
 
         if self.index.ntotal == 0:
             return False

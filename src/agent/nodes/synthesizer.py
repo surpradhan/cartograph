@@ -1,4 +1,5 @@
 import logging
+import re
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -98,6 +99,38 @@ def run_synthesizer(state: ResearchState, config: AgentConfig) -> dict:
     if _REFERENCES_HEADING in body:
         body = body[:body.index(_REFERENCES_HEADING)].rstrip()
         logger.warning("LLM included a References section despite instructions; stripped it")
+
+    # Enforce citations: if the LLM ignored the [N] instruction, retry with a stricter prompt
+    if len(re.findall(r"\[\d+\]", body)) < 2:
+        logger.warning(
+            "Synthesizer: report has fewer than 2 inline citations; retrying with stricter prompt"
+        )
+        strict_message = (
+            user_message
+            + "\n\nIMPORTANT: Your previous response contained no inline citations. "
+            "You MUST add [N] citation markers (e.g. [1], [2]) after every factual claim. "
+            "Every sentence stating a fact must be followed by at least one [N] marker."
+        )
+        try:
+            retry_response = llm.invoke([
+                SystemMessage(content=system_prompt),
+                HumanMessage(content=strict_message),
+            ])
+            retry_body = retry_response.content.strip()
+            if _REFERENCES_HEADING in retry_body:
+                retry_body = retry_body[:retry_body.index(_REFERENCES_HEADING)].rstrip()
+            retry_citations = re.findall(r"\[\d+\]", retry_body)
+            if len(retry_citations) > len(re.findall(r"\[\d+\]", body)):
+                body = retry_body
+                logger.info(
+                    "Synthesizer citation retry succeeded (%d citation(s))", len(retry_citations)
+                )
+            else:
+                logger.warning(
+                    "Synthesizer citation retry also produced no citations; keeping original"
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Synthesizer citation retry failed: %s", exc)
 
     report = body + references
     logger.info("Synthesizer produced a report of %d characters", len(report))

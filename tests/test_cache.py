@@ -94,3 +94,20 @@ def test_faiss_mode_add_updates_index_and_urls():
 
     cache.index.add.assert_called_once()
     assert "https://added.com" in cache.stored_urls
+
+
+@patch("src.retrieval.cache._FAISS_AVAILABLE", True)
+def test_faiss_mode_duplicate_url_caught_without_semantic_check():
+    """Exact URL match must be detected even in FAISS mode, before semantic search."""
+    import numpy as np
+
+    cache = _make_faiss_cache()
+    cache.index.ntotal = 1
+    # Semantic similarity is LOW — but the URL is the same
+    cache.index.search.return_value = (np.array([[0.3]]), np.array([[0]]))
+    cache.stored_urls = ["https://wiki.org/page"]
+
+    # Should be a duplicate purely because the URL matches, despite low semantic score
+    assert cache.is_duplicate("completely different text", "https://wiki.org/page") is True
+    # FAISS search should NOT have been called — URL check short-circuits it
+    cache.index.search.assert_not_called()

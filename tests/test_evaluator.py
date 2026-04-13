@@ -212,6 +212,36 @@ def test_evaluator_accumulates_sources_across_retries(mock_llm_cls, config):
 
 
 @patch("src.agent.nodes.evaluator.ChatOllama")
+def test_evaluator_coverage_satisfied_in_early_return(mock_llm_cls, config):
+    """When all search results are already-evaluated URLs, coverage is re-checked
+    against the accumulated set rather than always returning False."""
+    from src.agent.nodes.evaluator import run_evaluator
+
+    # Simulate prior retry that already has a passing source for every sub-question
+    prior_q1 = {**_make_source("Q1", "https://q1.com"), "relevance_score": 4, "score_reason": "Good"}
+    prior_q2 = {**_make_source("Q2", "https://q2.com"), "relevance_score": 4, "score_reason": "Good"}
+
+    state = {
+        "query": "test",
+        # All search results are already-evaluated URLs — nothing new to score
+        "search_results": [
+            _make_source("Q1", "https://q1.com"),
+            _make_source("Q2", "https://q2.com"),
+        ],
+        "sub_questions": ["Q1", "Q2"],
+        "evaluated_sources": [prior_q1, prior_q2],
+        "retry_count": 1,
+    }
+    result = run_evaluator(state, config)
+
+    # Coverage should be True — prior sources already satisfy min_sources_per_question=1
+    assert result["coverage_sufficient"] is True
+    assert result["evaluated_sources"] == [prior_q1, prior_q2]
+    # No LLM calls needed since nothing new to score
+    mock_llm_cls.assert_not_called()
+
+
+@patch("src.agent.nodes.evaluator.ChatOllama")
 def test_evaluator_skips_already_evaluated_urls(mock_llm_cls, config):
     """URLs already in evaluated_sources are not re-scored on a subsequent retry."""
     mock_llm = MagicMock()
