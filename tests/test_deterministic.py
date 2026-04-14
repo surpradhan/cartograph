@@ -1,5 +1,4 @@
 """Tests for deterministic eval judge."""
-import pytest
 from evals.judges.deterministic import check_required_topics
 
 

@@ -149,7 +149,7 @@ def check_required_topics(
         else:
             aliases = [topic]
             label = topic
-            found = topic.lower() in report_lower
+            found = any(alias.lower() in report_lower for alias in aliases)
         results.append(CheckResult(
             name=f"topic_coverage:{label}",
             passed=found,
