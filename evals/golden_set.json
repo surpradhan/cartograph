@@ -18,7 +18,7 @@
     "min_sources": 3,
     "min_report_words": 200,
     "max_report_words": 2000,
-    "required_topics": ["Bronze Age", "collapse", "civiliz", "Mediterranean"],
+    "required_topics": ["Bronze Age", "collapse", ["civilization", "civilizations", "societies", "cultures"], "Mediterranean"],
     "forbidden_topics": []
   },
   {

@@ -132,19 +132,31 @@ def check_report_has_citations(report: str) -> CheckResult:
 
 def check_required_topics(
     report: str,
-    required_topics: list[str],
+    required_topics: list[str | list[str]],
 ) -> list[CheckResult]:
+    """Check that required topics appear in the report.
+
+    Each entry can be a string (exact substring match) or a list of strings
+    (any one match counts — use for synonyms, e.g. ["civilization", "societies"]).
+    """
     results = []
     report_lower = report.lower()
     for topic in required_topics:
-        found = topic.lower() in report_lower
+        if isinstance(topic, list):
+            aliases = topic
+            label = "/".join(aliases)
+            found = any(alias.lower() in report_lower for alias in aliases)
+        else:
+            aliases = [topic]
+            label = topic
+            found = topic.lower() in report_lower
         results.append(CheckResult(
-            name=f"topic_coverage:{topic}",
+            name=f"topic_coverage:{label}",
             passed=found,
             message=(
-                f"Required topic '{topic}' found in report"
+                f"Required topic '{label}' found in report"
                 if found
-                else f"Required topic '{topic}' NOT found in report"
+                else f"Required topic '{label}' NOT found in report"
             ),
             severity="error" if not found else "info",
         ))
