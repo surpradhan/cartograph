@@ -1,10 +1,27 @@
+import sys
 from pathlib import Path
-from unittest.mock import patch
+from types import ModuleType
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-import app as app_module
-from app import _prepare_export
+# Stub out heavy / unavailable dependencies before importing app
+for _mod in (
+    "ddgs",
+    "gradio",
+    "src.agent.graph",
+    "src.history",
+    "src.llm",
+):
+    if _mod not in sys.modules:
+        sys.modules[_mod] = MagicMock()
+
+# gradio needs a real-ish update() for the return-value assertions
+import gradio as _gr  # noqa: E402  (already mocked above)
+_gr.update.side_effect = lambda **kw: kw  # return the kwargs dict
+
+import app as app_module  # noqa: E402
+from app import _prepare_export  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
