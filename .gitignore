@@ -58,6 +58,9 @@ CLAUDE.md
 # Eval results (keep the directory, ignore run outputs)
 evals/results/*.json
 
+# Local research history database
+history.db
+
 
 
 

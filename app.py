@@ -5,6 +5,7 @@ import httpx
 
 from src.agent.graph import build_graph
 from src.config import AgentConfig
+from src.history import load_by_id, load_recent, save_run
 from src.llm import CLOUD_MODEL_CHOICES
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -177,6 +178,10 @@ tr.tr-body:hover td { color: #c8922a !important; }
 .depth-radio .wrap { display: flex !important; gap: 8px !important; }
 .depth-radio .wrap label { flex: 1 !important; justify-content: center !important; text-align: center !important; }
 
+/* History accordion */
+.history-accordion { margin-top: 12px !important; }
+.history-accordion .label-wrap { color: #c8922a !important; font-size: 0.85rem !important; }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #0d0d0d; }
@@ -275,6 +280,26 @@ def _ollama_hint(error_msg: str) -> str:
     if "timeout" in msg or "timed out" in msg:
         return "\n\nHint: Ollama timed out. The model may be too slow for this hardware."
     return ""
+
+
+def _history_choices() -> list[tuple[str, int]]:
+    return [
+        (f"{r['timestamp']} — {r['query'][:60]}", r["id"])
+        for r in load_recent(10)
+    ]
+
+
+def _load_history_report(run_id: int | None) -> str:
+    if run_id is None:
+        return ""
+    return load_by_id(run_id)
+
+
+def _save_and_refresh(query: str, depth: str, model: str, report: str):
+    """Save completed run to history and return updated dropdown."""
+    if report and not report.startswith("Error:") and not report.startswith("Drop a pin"):
+        save_run(query, depth, model, report)
+    return gr.update(choices=_history_choices(), value=None)
 
 
 def research(query: str, depth: str, model: str, cloud_model: str, provider: str, api_key: str, backend: str, tavily_key: str):
@@ -424,6 +449,14 @@ with gr.Blocks(title="Cartograph") as demo:
 
     report_box = gr.Markdown(label="Field Report")
 
+    with gr.Accordion("Recent Maps", open=False, elem_classes="history-accordion"):
+        history_dropdown = gr.Dropdown(
+            choices=_history_choices(),
+            label="Select a past report to reload",
+            value=None,
+            interactive=True,
+        )
+
     gr.Examples(
         examples=EXAMPLES,
         inputs=[query_box, depth_radio],
@@ -440,9 +473,9 @@ with gr.Blocks(title="Cartograph") as demo:
         is_ollama = provider == "Ollama (local)"
         cloud_choices = CLOUD_MODEL_CHOICES.get(provider, CLOUD_MODEL_CHOICES["Anthropic"])
         return (
-            gr.update(visible=is_ollama),                                           # model_dropdown
-            gr.update(visible=not is_ollama, choices=cloud_choices, value=cloud_choices[0]),  # cloud_model_dropdown
-            gr.update(visible=not is_ollama),                                       # api_key_box
+            gr.update(visible=is_ollama),
+            gr.update(visible=not is_ollama, choices=cloud_choices, value=cloud_choices[0]),
+            gr.update(visible=not is_ollama),
         )
 
     provider_radio.change(
@@ -458,9 +491,25 @@ with gr.Blocks(title="Cartograph") as demo:
     )
 
     _inputs = [query_box, depth_radio, model_dropdown, cloud_model_dropdown, provider_radio, api_key_box, backend_radio, tavily_key_box]
+    _history_inputs = [query_box, depth_radio, model_dropdown, report_box]
 
-    run_btn.click(fn=research, inputs=_inputs, outputs=[status_box, report_box])
-    query_box.submit(fn=research, inputs=_inputs, outputs=[status_box, report_box])
+    run_btn.click(
+        fn=research, inputs=_inputs, outputs=[status_box, report_box],
+    ).then(
+        fn=_save_and_refresh, inputs=_history_inputs, outputs=[history_dropdown],
+    )
+
+    query_box.submit(
+        fn=research, inputs=_inputs, outputs=[status_box, report_box],
+    ).then(
+        fn=_save_and_refresh, inputs=_history_inputs, outputs=[history_dropdown],
+    )
+
+    history_dropdown.change(
+        fn=_load_history_report,
+        inputs=[history_dropdown],
+        outputs=[report_box],
+    )
 
 if __name__ == "__main__":
     demo.launch(theme=gr.themes.Soft(), css=CSS, js=_PAGE_JS)
