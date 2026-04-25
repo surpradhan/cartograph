@@ -5,6 +5,7 @@ import httpx
 
 from src.agent.graph import build_graph
 from src.config import AgentConfig
+from src.history import load_by_id, load_recent, save_run
 from src.llm import CLOUD_MODEL_CHOICES
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -177,6 +178,10 @@ tr.tr-body:hover td { color: #c8922a !important; }
 .depth-radio .wrap { display: flex !important; gap: 8px !important; }
 .depth-radio .wrap label { flex: 1 !important; justify-content: center !important; text-align: center !important; }
 
+/* History accordion */
+.history-accordion { margin-top: 12px !important; }
+.history-accordion .label-wrap { color: #c8922a !important; font-size: 0.85rem !important; }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #0d0d0d; }
@@ -277,7 +282,35 @@ def _ollama_hint(error_msg: str) -> str:
     return ""
 
 
+<<<<<<< HEAD
 def research(query: str, depth: str, model: str, cloud_model: str, provider: str, api_key: str, backend: str, tavily_key: str):
+=======
+def _history_choices() -> list[str]:
+    return [
+        f"[{r['id']}] {r['timestamp']} — {r['query'][:60]}"
+        for r in load_recent(10)
+    ]
+
+
+def _load_history_report(label: str) -> str:
+    if not label:
+        return ""
+    try:
+        run_id = int(label.split("]")[0].lstrip("["))
+        return load_by_id(run_id)
+    except (ValueError, IndexError):
+        return ""
+
+
+def _save_and_refresh(query: str, depth: str, model: str, report: str):
+    """Save completed run to history and return updated dropdown."""
+    if report and not report.startswith("Error:") and not report.startswith("Drop a pin"):
+        save_run(query, depth, model, report)
+    return gr.update(choices=_history_choices(), value=None)
+
+
+def research(query: str, depth: str, model: str):
+>>>>>>> 5dea5f0 (Add local research history with SQLite)
     """
     Generator — yields (status, report) tuples so Gradio can stream progress.
     Each node completion updates the status bar; the report appears once synthesis finishes.
@@ -424,6 +457,14 @@ with gr.Blocks(title="Cartograph") as demo:
 
     report_box = gr.Markdown(label="Field Report")
 
+    with gr.Accordion("Recent Maps", open=False, elem_classes="history-accordion"):
+        history_dropdown = gr.Dropdown(
+            choices=_history_choices(),
+            label="Select a past report to reload",
+            value=None,
+            interactive=True,
+        )
+
     gr.Examples(
         examples=EXAMPLES,
         inputs=[query_box, depth_radio],
@@ -436,6 +477,7 @@ with gr.Blocks(title="Cartograph") as demo:
         "</div>"
     )
 
+<<<<<<< HEAD
     def _on_provider_change(provider: str):
         is_ollama = provider == "Ollama (local)"
         cloud_choices = CLOUD_MODEL_CHOICES.get(provider, CLOUD_MODEL_CHOICES["Anthropic"])
@@ -455,6 +497,27 @@ with gr.Blocks(title="Cartograph") as demo:
         fn=lambda b: gr.update(visible=(b == "Tavily")),
         inputs=[backend_radio],
         outputs=[tavily_key_box],
+=======
+    _inputs = [query_box, depth_radio, model_dropdown]
+    _history_inputs = [query_box, depth_radio, model_dropdown, report_box]
+
+    run_btn.click(
+        fn=research, inputs=_inputs, outputs=[status_box, report_box],
+    ).then(
+        fn=_save_and_refresh, inputs=_history_inputs, outputs=[history_dropdown],
+    )
+
+    query_box.submit(
+        fn=research, inputs=_inputs, outputs=[status_box, report_box],
+    ).then(
+        fn=_save_and_refresh, inputs=_history_inputs, outputs=[history_dropdown],
+    )
+
+    history_dropdown.change(
+        fn=_load_history_report,
+        inputs=[history_dropdown],
+        outputs=[report_box],
+>>>>>>> 5dea5f0 (Add local research history with SQLite)
     )
 
     _inputs = [query_box, depth_radio, model_dropdown, cloud_model_dropdown, provider_radio, api_key_box, backend_radio, tavily_key_box]
