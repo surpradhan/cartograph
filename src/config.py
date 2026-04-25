@@ -12,6 +12,8 @@ class AgentConfig(BaseModel):
     llm_timeout: int = Field(default=120, gt=0)
 
     # Search
+    search_backend: Literal["ddg", "tavily"] = "ddg"
+    tavily_api_key: str = ""
     results_per_query: int = Field(default=5, ge=1, le=20)
     max_sub_questions: int = Field(default=5, ge=1, le=10)
 

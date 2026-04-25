@@ -3,9 +3,15 @@ import logging
 from src.agent.state import ResearchState
 from src.config import AgentConfig
 from src.retrieval.cache import SourceCache
-from src.search.ddg import search
+from src.search import ddg, tavily
 
 logger = logging.getLogger(__name__)
+
+
+def _search(query: str, config: AgentConfig) -> list[dict]:
+    if config.search_backend == "tavily":
+        return tavily.search(query, max_results=config.results_per_query, api_key=config.tavily_api_key)
+    return ddg.search(query, max_results=config.results_per_query)
 
 
 def run_searcher(state: ResearchState, config: AgentConfig) -> dict:
@@ -35,7 +41,7 @@ def run_searcher(state: ResearchState, config: AgentConfig) -> dict:
 
     for q in sub_questions:
         try:
-            results = search(q, max_results=config.results_per_query)
+            results = _search(q, config)
             if not results:
                 logger.warning("No results returned for sub-question: '%s'", q)
                 continue
