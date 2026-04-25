@@ -7,20 +7,26 @@ logger = logging.getLogger(__name__)
 
 _DB_PATH = Path(__file__).parent.parent / "history.db"
 
+# Track which DB paths have had their schema created so DDL only runs once per path.
+_initialized_paths: set[str] = set()
+
 
 def _get_conn() -> sqlite3.Connection:
     conn = sqlite3.connect(_DB_PATH)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS runs (
-            id        INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TEXT    NOT NULL,
-            query     TEXT    NOT NULL,
-            depth     TEXT    NOT NULL,
-            model     TEXT    NOT NULL,
-            report    TEXT    NOT NULL
-        )
-    """)
-    conn.commit()
+    key = str(_DB_PATH)
+    if key not in _initialized_paths:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS runs (
+                id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT    NOT NULL,
+                query     TEXT    NOT NULL,
+                depth     TEXT    NOT NULL,
+                model     TEXT    NOT NULL,
+                report    TEXT    NOT NULL
+            )
+        """)
+        conn.commit()
+        _initialized_paths.add(key)
     return conn
 
 

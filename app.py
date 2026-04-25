@@ -282,24 +282,17 @@ def _ollama_hint(error_msg: str) -> str:
     return ""
 
 
-<<<<<<< HEAD
-def research(query: str, depth: str, model: str, cloud_model: str, provider: str, api_key: str, backend: str, tavily_key: str):
-=======
-def _history_choices() -> list[str]:
+def _history_choices() -> list[tuple[str, int]]:
     return [
-        f"[{r['id']}] {r['timestamp']} — {r['query'][:60]}"
+        (f"{r['timestamp']} — {r['query'][:60]}", r["id"])
         for r in load_recent(10)
     ]
 
 
-def _load_history_report(label: str) -> str:
-    if not label:
+def _load_history_report(run_id: int | None) -> str:
+    if run_id is None:
         return ""
-    try:
-        run_id = int(label.split("]")[0].lstrip("["))
-        return load_by_id(run_id)
-    except (ValueError, IndexError):
-        return ""
+    return load_by_id(run_id)
 
 
 def _save_and_refresh(query: str, depth: str, model: str, report: str):
@@ -309,8 +302,7 @@ def _save_and_refresh(query: str, depth: str, model: str, report: str):
     return gr.update(choices=_history_choices(), value=None)
 
 
-def research(query: str, depth: str, model: str):
->>>>>>> 5dea5f0 (Add local research history with SQLite)
+def research(query: str, depth: str, model: str, cloud_model: str, provider: str, api_key: str, backend: str, tavily_key: str):
     """
     Generator — yields (status, report) tuples so Gradio can stream progress.
     Each node completion updates the status bar; the report appears once synthesis finishes.
@@ -477,14 +469,13 @@ with gr.Blocks(title="Cartograph") as demo:
         "</div>"
     )
 
-<<<<<<< HEAD
     def _on_provider_change(provider: str):
         is_ollama = provider == "Ollama (local)"
         cloud_choices = CLOUD_MODEL_CHOICES.get(provider, CLOUD_MODEL_CHOICES["Anthropic"])
         return (
-            gr.update(visible=is_ollama),                                           # model_dropdown
-            gr.update(visible=not is_ollama, choices=cloud_choices, value=cloud_choices[0]),  # cloud_model_dropdown
-            gr.update(visible=not is_ollama),                                       # api_key_box
+            gr.update(visible=is_ollama),
+            gr.update(visible=not is_ollama, choices=cloud_choices, value=cloud_choices[0]),
+            gr.update(visible=not is_ollama),
         )
 
     provider_radio.change(
@@ -497,8 +488,9 @@ with gr.Blocks(title="Cartograph") as demo:
         fn=lambda b: gr.update(visible=(b == "Tavily")),
         inputs=[backend_radio],
         outputs=[tavily_key_box],
-=======
-    _inputs = [query_box, depth_radio, model_dropdown]
+    )
+
+    _inputs = [query_box, depth_radio, model_dropdown, cloud_model_dropdown, provider_radio, api_key_box, backend_radio, tavily_key_box]
     _history_inputs = [query_box, depth_radio, model_dropdown, report_box]
 
     run_btn.click(
@@ -517,13 +509,7 @@ with gr.Blocks(title="Cartograph") as demo:
         fn=_load_history_report,
         inputs=[history_dropdown],
         outputs=[report_box],
->>>>>>> 5dea5f0 (Add local research history with SQLite)
     )
-
-    _inputs = [query_box, depth_radio, model_dropdown, cloud_model_dropdown, provider_radio, api_key_box, backend_radio, tavily_key_box]
-
-    run_btn.click(fn=research, inputs=_inputs, outputs=[status_box, report_box])
-    query_box.submit(fn=research, inputs=_inputs, outputs=[status_box, report_box])
 
 if __name__ == "__main__":
     demo.launch(theme=gr.themes.Soft(), css=CSS, js=_PAGE_JS)

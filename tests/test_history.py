@@ -1,5 +1,3 @@
-import os
-import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,10 +9,12 @@ from src.history import load_by_id, load_recent, save_run
 
 @pytest.fixture(autouse=True)
 def tmp_db(tmp_path):
-    """Redirect history.db to a temp path for every test."""
+    """Redirect history.db to a temp path for every test; reset schema-init cache."""
     db = tmp_path / "test_history.db"
+    history_module._initialized_paths.clear()
     with patch.object(history_module, "_DB_PATH", db):
         yield db
+    history_module._initialized_paths.clear()
 
 
 def test_save_and_load_recent():
@@ -60,3 +60,20 @@ def test_load_recent_returns_empty_on_no_runs():
 def test_save_run_is_silent_on_error():
     with patch.object(history_module, "_DB_PATH", Path("/nonexistent/dir/history.db")):
         save_run("query", "depth", "model", "report")  # should not raise
+
+
+def test_load_recent_returns_id_in_dict():
+    """load_recent must expose the integer id so callers can use it directly."""
+    save_run("Query with ] bracket", "Standard (5)", "llama3.1", "Report X")
+    runs = load_recent()
+    assert isinstance(runs[0]["id"], int)
+    assert load_by_id(runs[0]["id"]) == "Report X"
+
+
+def test_ddl_runs_once_per_db_path():
+    """Schema init records the path in _initialized_paths exactly once."""
+    assert len(history_module._initialized_paths) == 0
+    load_recent()
+    load_recent()
+    load_recent()
+    assert len(history_module._initialized_paths) == 1
