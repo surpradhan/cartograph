@@ -277,7 +277,7 @@ def _ollama_hint(error_msg: str) -> str:
     return ""
 
 
-def research(query: str, depth: str, model: str, cloud_model: str, provider: str, api_key: str):
+def research(query: str, depth: str, model: str, cloud_model: str, provider: str, api_key: str, backend: str, tavily_key: str):
     """
     Generator — yields (status, report) tuples so Gradio can stream progress.
     Each node completion updates the status bar; the report appears once synthesis finishes.
@@ -293,6 +293,8 @@ def research(query: str, depth: str, model: str, cloud_model: str, provider: str
         api_key="" if is_ollama else api_key.strip(),
         model_name=model if is_ollama else cloud_model,
         max_sub_questions=DEPTH_MAP[depth],
+        search_backend="tavily" if backend == "Tavily" else "ddg",
+        tavily_api_key=tavily_key.strip(),
     )
     graph = build_graph(cfg)
 
@@ -396,7 +398,22 @@ with gr.Blocks(title="Cartograph") as demo:
             scale=2,
             visible=False,
         )
+        backend_radio = gr.Radio(
+            choices=["DuckDuckGo", "Tavily"],
+            value="DuckDuckGo",
+            label="Search",
+            elem_classes="depth-radio",
+            scale=1,
+        )
         run_btn = gr.Button("Chart It", variant="primary", scale=3, elem_classes="chart-btn")
+
+    tavily_key_box = gr.Textbox(
+        label="Tavily API Key",
+        placeholder="tvly-...",
+        type="password",
+        visible=False,
+        lines=1,
+    )
 
     status_box = gr.Textbox(
         label="Survey Log",
@@ -434,7 +451,13 @@ with gr.Blocks(title="Cartograph") as demo:
         outputs=[model_dropdown, cloud_model_dropdown, api_key_box],
     )
 
-    _inputs = [query_box, depth_radio, model_dropdown, cloud_model_dropdown, provider_radio, api_key_box]
+    backend_radio.change(
+        fn=lambda b: gr.update(visible=(b == "Tavily")),
+        inputs=[backend_radio],
+        outputs=[tavily_key_box],
+    )
+
+    _inputs = [query_box, depth_radio, model_dropdown, cloud_model_dropdown, provider_radio, api_key_box, backend_radio, tavily_key_box]
 
     run_btn.click(fn=research, inputs=_inputs, outputs=[status_box, report_box])
     query_box.submit(fn=research, inputs=_inputs, outputs=[status_box, report_box])

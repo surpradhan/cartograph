@@ -34,7 +34,7 @@ def test_ddg_search_returns_normalised_results(mock_ddgs_cls):
 
 
 @patch("src.agent.nodes.searcher.SourceCache")
-@patch("src.agent.nodes.searcher.search")
+@patch("src.search.ddg.search")
 def test_searcher_deduplicates(mock_search, mock_cache_cls, config):
     """Searcher should skip sources flagged as duplicates by the cache."""
     from src.agent.nodes.searcher import run_searcher
@@ -53,7 +53,7 @@ def test_searcher_deduplicates(mock_search, mock_cache_cls, config):
 
 
 @patch("src.agent.nodes.searcher.SourceCache")
-@patch("src.agent.nodes.searcher.search")
+@patch("src.search.ddg.search")
 def test_searcher_fresh_cache_per_call(mock_search, mock_cache_cls, config):
     """Each run_searcher call creates a fresh cache so retries are not blocked."""
     from src.agent.nodes.searcher import run_searcher
