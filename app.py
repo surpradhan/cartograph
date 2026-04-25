@@ -1,4 +1,5 @@
 import logging
+import tempfile
 
 import gradio as gr
 import httpx
@@ -182,6 +183,20 @@ tr.tr-body:hover td { color: #c8922a !important; }
 .history-accordion { margin-top: 12px !important; }
 .history-accordion .label-wrap { color: #c8922a !important; font-size: 0.85rem !important; }
 
+/* Export buttons row */
+.export-row { margin-top: 8px !important; }
+.export-row button {
+    background-color: #1a1a1a !important;
+    border: 1px solid #2e2e2e !important;
+    color: #c8922a !important;
+    font-size: 0.8rem !important;
+    padding: 6px 14px !important;
+}
+.export-row button:hover {
+    border-color: #c8922a !important;
+    background-color: rgba(200, 146, 42, 0.08) !important;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #0d0d0d; }
@@ -300,6 +315,23 @@ def _save_and_refresh(query: str, depth: str, model: str, report: str):
     if report and not report.startswith("Error:") and not report.startswith("Drop a pin"):
         save_run(query, depth, model, report)
     return gr.update(choices=_history_choices(), value=None)
+
+
+_last_export_tmp: Path | None = None
+
+
+def _prepare_export(report: str):
+    """Write report to a temp file for download; show/hide export row."""
+    global _last_export_tmp
+    if not report or report.startswith("Error:") or report.startswith("Drop a pin"):
+        return gr.update(visible=False), gr.update(value=None, visible=False)
+    if _last_export_tmp is not None:
+        _last_export_tmp.unlink(missing_ok=True)
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".md", mode="w", encoding="utf-8")
+    tmp.write(report)
+    tmp.close()
+    _last_export_tmp = Path(tmp.name)
+    return gr.update(visible=True), gr.update(value=tmp.name, visible=True)
 
 
 def research(query: str, depth: str, model: str, cloud_model: str, provider: str, api_key: str, backend: str, tavily_key: str):
@@ -449,6 +481,10 @@ with gr.Blocks(title="Cartograph") as demo:
 
     report_box = gr.Markdown(label="Field Report")
 
+    with gr.Row(visible=False, elem_classes="export-row") as export_row:
+        copy_btn = gr.Button("⎘ Copy Markdown", variant="secondary", scale=1)
+        dl_btn = gr.DownloadButton("↓ Download .md", variant="secondary", scale=1, visible=False)
+
     with gr.Accordion("Recent Maps", open=False, elem_classes="history-accordion"):
         history_dropdown = gr.Dropdown(
             choices=_history_choices(),
@@ -497,18 +533,28 @@ with gr.Blocks(title="Cartograph") as demo:
         fn=research, inputs=_inputs, outputs=[status_box, report_box],
     ).then(
         fn=_save_and_refresh, inputs=_history_inputs, outputs=[history_dropdown],
+    ).then(
+        fn=_prepare_export, inputs=[report_box], outputs=[export_row, dl_btn],
     )
 
     query_box.submit(
         fn=research, inputs=_inputs, outputs=[status_box, report_box],
     ).then(
         fn=_save_and_refresh, inputs=_history_inputs, outputs=[history_dropdown],
+    ).then(
+        fn=_prepare_export, inputs=[report_box], outputs=[export_row, dl_btn],
     )
 
     history_dropdown.change(
         fn=_load_history_report,
         inputs=[history_dropdown],
         outputs=[report_box],
+    )
+
+    copy_btn.click(
+        fn=None,
+        js="(report) => { navigator.clipboard.writeText(report); }",
+        inputs=[report_box],
     )
 
 if __name__ == "__main__":
