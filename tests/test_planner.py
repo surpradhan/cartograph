@@ -12,7 +12,7 @@ def config():
     return AgentConfig(model_name="llama3.1", max_sub_questions=5)
 
 
-@patch("src.agent.nodes.planner.ChatOllama")
+@patch("src.agent.nodes.planner.build_llm")
 def test_planner_returns_sub_questions(mock_llm_cls, config):
     """Planner should return a non-empty list of sub-questions."""
     mock_llm = MagicMock()
@@ -35,10 +35,10 @@ def test_planner_returns_sub_questions(mock_llm_cls, config):
     assert "What is speculative decoding?" in result["sub_questions"]
 
 
-@patch("src.agent.nodes.planner.ChatOllama")
+@patch("src.agent.nodes.planner.build_llm")
 def test_planner_respects_max_sub_questions(mock_llm_cls, config):
     """Planner should not exceed max_sub_questions."""
-    config.max_sub_questions = 2
+    config = config.model_copy(update={"max_sub_questions": 2})
     mock_llm = MagicMock()
     mock_llm.invoke.return_value = MagicMock(
         content="1. Q1\n2. Q2\n3. Q3\n4. Q4\n5. Q5"

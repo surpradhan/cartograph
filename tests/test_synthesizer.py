@@ -32,7 +32,7 @@ def _base_state(sources):
 
 # ── Happy path ────────────────────────────────────────────────────────────────
 
-@patch("src.agent.nodes.synthesizer.ChatOllama")
+@patch("src.agent.nodes.synthesizer.build_llm")
 def test_synthesizer_returns_report_with_references(mock_llm_cls, config):
     """Report should include both LLM body and an appended References section."""
     mock_llm = MagicMock()
@@ -48,7 +48,7 @@ def test_synthesizer_returns_report_with_references(mock_llm_cls, config):
     assert "https://example.com" in result["report"]
 
 
-@patch("src.agent.nodes.synthesizer.ChatOllama")
+@patch("src.agent.nodes.synthesizer.build_llm")
 def test_synthesizer_strips_llm_added_references(mock_llm_cls, config):
     """LLM-generated References section is stripped before the canonical one is appended."""
     mock_llm = MagicMock()
@@ -69,7 +69,7 @@ def test_synthesizer_strips_llm_added_references(mock_llm_cls, config):
 
 # ── Fallback paths ─────────────────────────────────────────────────────────────
 
-@patch("src.agent.nodes.synthesizer.ChatOllama")
+@patch("src.agent.nodes.synthesizer.build_llm")
 def test_synthesizer_empty_sources_returns_minimal_report(mock_llm_cls, config):
     """Empty source list returns a minimal report without calling the LLM."""
     from src.agent.nodes.synthesizer import run_synthesizer
@@ -80,7 +80,7 @@ def test_synthesizer_empty_sources_returns_minimal_report(mock_llm_cls, config):
     mock_llm_cls.assert_not_called()
 
 
-@patch("src.agent.nodes.synthesizer.ChatOllama")
+@patch("src.agent.nodes.synthesizer.build_llm")
 def test_synthesizer_llm_failure_returns_fallback_report(mock_llm_cls, config):
     """LLM exception produces a fallback report that still includes source URLs."""
     mock_llm = MagicMock()
@@ -95,7 +95,7 @@ def test_synthesizer_llm_failure_returns_fallback_report(mock_llm_cls, config):
 
 
 @patch("src.agent.nodes.synthesizer.PROMPT_PATH")
-@patch("src.agent.nodes.synthesizer.ChatOllama")
+@patch("src.agent.nodes.synthesizer.build_llm")
 def test_synthesizer_missing_prompt_uses_fallback_prompt(mock_llm_cls, mock_path, config):
     """Missing prompt file uses a hardcoded fallback; LLM is still called."""
     mock_path.read_text.side_effect = OSError("missing")
@@ -111,7 +111,7 @@ def test_synthesizer_missing_prompt_uses_fallback_prompt(mock_llm_cls, mock_path
     assert "Fallback report body." in result["report"]
 
 
-@patch("src.agent.nodes.synthesizer.ChatOllama")
+@patch("src.agent.nodes.synthesizer.build_llm")
 def test_synthesizer_retries_when_no_citations(mock_llm_cls, config):
     """If the first LLM response has no [N] citations, a second call is made with a stricter prompt."""
     mock_llm = MagicMock()
@@ -130,7 +130,7 @@ def test_synthesizer_retries_when_no_citations(mock_llm_cls, config):
     assert "[1]" in result["report"]
 
 
-@patch("src.agent.nodes.synthesizer.ChatOllama")
+@patch("src.agent.nodes.synthesizer.build_llm")
 def test_synthesizer_keeps_original_if_retry_also_lacks_citations(mock_llm_cls, config):
     """If the citation retry also fails to produce [N] markers, the original body is kept."""
     mock_llm = MagicMock()

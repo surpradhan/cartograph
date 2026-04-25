@@ -1,25 +1,35 @@
-from dataclasses import dataclass
+from pydantic import BaseModel, Field, field_validator
 
 
-@dataclass
-class AgentConfig:
+class AgentConfig(BaseModel):
     # LLM
+    provider: str = "ollama"   # "ollama" | "anthropic" | "openai"
+    api_key: str = ""
     model_name: str = "llama3.1"
-    temperature: float = 0.3
-    llm_timeout: int = 120  # seconds; applies to all Ollama calls
+    temperature: float = Field(default=0.3, ge=0.0, le=1.0)
+    llm_timeout: int = Field(default=120, gt=0)
 
     # Search
-    results_per_query: int = 5
-    max_sub_questions: int = 5
+    results_per_query: int = Field(default=5, ge=1, le=20)
+    max_sub_questions: int = Field(default=5, ge=1, le=10)
 
     # Evaluation
-    min_relevance_score: int = 3
-    min_sources_per_question: int = 1  # raise to 2 for stricter coverage on broad topics
-    max_retries: int = 2
+    min_relevance_score: int = Field(default=3, ge=1, le=5)
+    min_sources_per_question: int = Field(default=1, ge=1)
+    max_retries: int = Field(default=2, ge=0)
 
     # FAISS
-    dedup_threshold: float = 0.92
+    dedup_threshold: float = Field(default=0.92, gt=0.0, le=1.0)
     embedding_model: str = "all-MiniLM-L6-v2"
 
     # Synthesis
-    snippet_max_chars: int = 500
+    snippet_max_chars: int = Field(default=500, gt=0)
+
+    @field_validator("model_name", "embedding_model")
+    @classmethod
+    def must_not_be_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("must not be blank")
+        return v
+
+    model_config = {"frozen": True}

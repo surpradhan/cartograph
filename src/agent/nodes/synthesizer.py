@@ -3,10 +3,10 @@ import re
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_ollama import ChatOllama
 
 from src.agent.state import ResearchState
 from src.config import AgentConfig
+from src.llm import build_llm
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +62,7 @@ def run_synthesizer(state: ResearchState, config: AgentConfig) -> dict:
             "Do NOT include a References or Sources section at the end."
         )
 
-    llm = ChatOllama(
-        model=config.model_name, temperature=config.temperature, timeout=config.llm_timeout
-    )
+    llm = build_llm(config)
     citation_context, references = _build_sources_block(sources, config.snippet_max_chars)
 
     user_message = (

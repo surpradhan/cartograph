@@ -2,10 +2,10 @@ import logging
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_ollama import ChatOllama
 
 from src.agent.state import ResearchState
 from src.config import AgentConfig
+from src.llm import build_llm
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +26,7 @@ def run_planner(state: ResearchState, config: AgentConfig) -> dict:
         # Fall back to the query itself as the sole sub-question
         return {"sub_questions": [state["query"]]}
 
-    llm = ChatOllama(
-        model=config.model_name, temperature=config.temperature, timeout=config.llm_timeout
-    )
+    llm = build_llm(config)
 
     try:
         response = llm.invoke([

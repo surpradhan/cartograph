@@ -45,10 +45,10 @@ def _patch_cache():
 
 # ── Happy path ────────────────────────────────────────────────────────────────
 
-@patch("src.agent.nodes.synthesizer.ChatOllama")
-@patch("src.agent.nodes.evaluator.ChatOllama")
-@patch("src.agent.nodes.planner.ChatOllama")
-@patch("src.agent.nodes.searcher.search")
+@patch("src.agent.nodes.synthesizer.build_llm")
+@patch("src.agent.nodes.evaluator.build_llm")
+@patch("src.agent.nodes.planner.build_llm")
+@patch("src.search.ddg.search")
 def test_graph_happy_path(
     mock_search,
     mock_planner_llm_cls,
@@ -75,10 +75,10 @@ def test_graph_happy_path(
 
 # ── Unhappy paths ─────────────────────────────────────────────────────────────
 
-@patch("src.agent.nodes.synthesizer.ChatOllama")
-@patch("src.agent.nodes.evaluator.ChatOllama")
-@patch("src.agent.nodes.planner.ChatOllama")
-@patch("src.agent.nodes.searcher.search")
+@patch("src.agent.nodes.synthesizer.build_llm")
+@patch("src.agent.nodes.evaluator.build_llm")
+@patch("src.agent.nodes.planner.build_llm")
+@patch("src.search.ddg.search")
 def test_graph_planner_fallback_to_original_query(
     mock_search,
     mock_planner_llm_cls,
@@ -103,10 +103,10 @@ def test_graph_planner_fallback_to_original_query(
     assert result["report"]
 
 
-@patch("src.agent.nodes.synthesizer.ChatOllama")
-@patch("src.agent.nodes.evaluator.ChatOllama")
-@patch("src.agent.nodes.planner.ChatOllama")
-@patch("src.agent.nodes.searcher.search")
+@patch("src.agent.nodes.synthesizer.build_llm")
+@patch("src.agent.nodes.evaluator.build_llm")
+@patch("src.agent.nodes.planner.build_llm")
+@patch("src.search.ddg.search")
 def test_graph_all_searches_fail_produces_minimal_report(
     mock_search,
     mock_planner_llm_cls,
@@ -129,10 +129,10 @@ def test_graph_all_searches_fail_produces_minimal_report(
     assert result["report"]
 
 
-@patch("src.agent.nodes.synthesizer.ChatOllama")
-@patch("src.agent.nodes.evaluator.ChatOllama")
-@patch("src.agent.nodes.planner.ChatOllama")
-@patch("src.agent.nodes.searcher.search")
+@patch("src.agent.nodes.synthesizer.build_llm")
+@patch("src.agent.nodes.evaluator.build_llm")
+@patch("src.agent.nodes.planner.build_llm")
+@patch("src.search.ddg.search")
 def test_graph_max_retries_exhausted_reaches_synthesizer(
     mock_search,
     mock_planner_llm_cls,

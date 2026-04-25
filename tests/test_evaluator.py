@@ -23,7 +23,7 @@ def _make_source(sub_q="Q1", url="https://example.com", snippet="relevant conten
 
 # ── Happy path ────────────────────────────────────────────────────────────────
 
-@patch("src.agent.nodes.evaluator.ChatOllama")
+@patch("src.agent.nodes.evaluator.build_llm")
 def test_evaluator_scores_and_filters(mock_llm_cls, config):
     """Sources below min_relevance_score are excluded from evaluated_sources."""
     mock_llm = MagicMock()
@@ -49,7 +49,7 @@ def test_evaluator_scores_and_filters(mock_llm_cls, config):
            result["evaluated_sources"][0]["relevance_score"] == 4
 
 
-@patch("src.agent.nodes.evaluator.ChatOllama")
+@patch("src.agent.nodes.evaluator.build_llm")
 def test_evaluator_coverage_sufficient(mock_llm_cls, config):
     """coverage_sufficient=True when every sub-question has enough good sources."""
     mock_llm = MagicMock()
@@ -69,7 +69,7 @@ def test_evaluator_coverage_sufficient(mock_llm_cls, config):
     assert result["coverage_sufficient"] is True
 
 
-@patch("src.agent.nodes.evaluator.ChatOllama")
+@patch("src.agent.nodes.evaluator.build_llm")
 def test_evaluator_coverage_insufficient_missing_sub_question(mock_llm_cls, config):
     """coverage_sufficient=False when a sub-question has no sources."""
     mock_llm = MagicMock()
@@ -91,7 +91,7 @@ def test_evaluator_coverage_insufficient_missing_sub_question(mock_llm_cls, conf
 
 # ── Fallback / error paths ─────────────────────────────────────────────────────
 
-@patch("src.agent.nodes.evaluator.ChatOllama")
+@patch("src.agent.nodes.evaluator.build_llm")
 def test_evaluator_json_parse_failure_defaults_to_score_1(mock_llm_cls, config):
     """A malformed LLM response assigns relevance_score=1 (filtered out)."""
     mock_llm = MagicMock()
@@ -111,7 +111,7 @@ def test_evaluator_json_parse_failure_defaults_to_score_1(mock_llm_cls, config):
     assert result["evaluated_sources"] == []  # score=1 < min_relevance_score=3
 
 
-@patch("src.agent.nodes.evaluator.ChatOllama")
+@patch("src.agent.nodes.evaluator.build_llm")
 def test_evaluator_empty_search_results(mock_llm_cls, config):
     """Empty search results immediately returns coverage_sufficient=False."""
     from src.agent.nodes.evaluator import run_evaluator
@@ -130,7 +130,7 @@ def test_evaluator_empty_search_results(mock_llm_cls, config):
 
 
 @patch("src.agent.nodes.evaluator.PROMPT_PATH")
-@patch("src.agent.nodes.evaluator.ChatOllama")
+@patch("src.agent.nodes.evaluator.build_llm")
 def test_evaluator_missing_prompt_returns_insufficient(mock_llm_cls, mock_path, config):
     """When the prompt file is missing, coverage_sufficient must be False."""
     mock_path.read_text.side_effect = OSError("file not found")
@@ -149,7 +149,7 @@ def test_evaluator_missing_prompt_returns_insufficient(mock_llm_cls, mock_path, 
     mock_llm_cls.assert_not_called()
 
 
-@patch("src.agent.nodes.evaluator.ChatOllama")
+@patch("src.agent.nodes.evaluator.build_llm")
 def test_evaluator_increments_retry_count(mock_llm_cls, config):
     """retry_count in output is always input + 1."""
     mock_llm = MagicMock()
@@ -171,7 +171,7 @@ def test_evaluator_increments_retry_count(mock_llm_cls, config):
 
 # ── Cross-retry accumulation ───────────────────────────────────────────────────
 
-@patch("src.agent.nodes.evaluator.ChatOllama")
+@patch("src.agent.nodes.evaluator.build_llm")
 def test_evaluator_accumulates_sources_across_retries(mock_llm_cls, config):
     """Sources from retry 1 carry forward; retry 2 fills the gap to reach coverage."""
     mock_llm = MagicMock()
@@ -211,7 +211,7 @@ def test_evaluator_accumulates_sources_across_retries(mock_llm_cls, config):
     assert mock_llm.invoke.call_count == 2
 
 
-@patch("src.agent.nodes.evaluator.ChatOllama")
+@patch("src.agent.nodes.evaluator.build_llm")
 def test_evaluator_coverage_satisfied_in_early_return(mock_llm_cls, config):
     """When all search results are already-evaluated URLs, coverage is re-checked
     against the accumulated set rather than always returning False."""
@@ -241,7 +241,7 @@ def test_evaluator_coverage_satisfied_in_early_return(mock_llm_cls, config):
     mock_llm_cls.assert_not_called()
 
 
-@patch("src.agent.nodes.evaluator.ChatOllama")
+@patch("src.agent.nodes.evaluator.build_llm")
 def test_evaluator_coverage_still_false_in_early_return_when_prior_insufficient(mock_llm_cls, config):
     """When no new results arrive and prior sources don't cover all sub-questions, stays False."""
     from src.agent.nodes.evaluator import run_evaluator
@@ -263,7 +263,7 @@ def test_evaluator_coverage_still_false_in_early_return_when_prior_insufficient(
     mock_llm_cls.assert_not_called()
 
 
-@patch("src.agent.nodes.evaluator.ChatOllama")
+@patch("src.agent.nodes.evaluator.build_llm")
 def test_evaluator_skips_already_evaluated_urls(mock_llm_cls, config):
     """URLs already in evaluated_sources are not re-scored on a subsequent retry."""
     mock_llm = MagicMock()
