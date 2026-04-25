@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from src.search.tavily import search
 
@@ -91,3 +92,10 @@ def test_searcher_dispatches_to_ddg_by_default(mock_cache_cls):
 
     mock_ddg.assert_called_once()
     assert output["search_results"][0]["url"] == "https://ddg.com"
+
+
+def test_invalid_search_backend_rejected_at_config_construction():
+    """AgentConfig should reject unknown search_backend values at construction time."""
+    from src.config import AgentConfig
+    with pytest.raises(ValidationError):
+        AgentConfig(search_backend="google")  # type: ignore[arg-type]
