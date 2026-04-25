@@ -5,6 +5,7 @@ import httpx
 
 from src.agent.graph import build_graph
 from src.config import AgentConfig
+from src.llm import CLOUD_MODEL_CHOICES
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
@@ -276,7 +277,7 @@ def _ollama_hint(error_msg: str) -> str:
     return ""
 
 
-def research(query: str, depth: str, model: str):
+def research(query: str, depth: str, model: str, cloud_model: str, provider: str, api_key: str):
     """
     Generator — yields (status, report) tuples so Gradio can stream progress.
     Each node completion updates the status bar; the report appears once synthesis finishes.
@@ -286,8 +287,11 @@ def research(query: str, depth: str, model: str):
         yield "Drop a pin on your research topic above.", ""
         return
 
+    is_ollama = provider == "Ollama (local)"
     cfg = AgentConfig(
-        model_name=model,
+        provider="ollama" if is_ollama else provider.lower(),
+        api_key="" if is_ollama else api_key.strip(),
+        model_name=model if is_ollama else cloud_model,
         max_sub_questions=DEPTH_MAP[depth],
     )
     graph = build_graph(cfg)
@@ -362,12 +366,35 @@ with gr.Blocks(title="Cartograph") as demo:
         elem_classes="depth-radio",
     )
 
+    provider_radio = gr.Radio(
+        choices=["Ollama (local)", "Anthropic", "OpenAI"],
+        value="Ollama (local)",
+        label="Provider",
+        elem_classes="depth-radio",
+    )
+
     with gr.Row(elem_classes="controls-row"):
         model_dropdown = gr.Dropdown(
             choices=_MODEL_CHOICES,
             value=_MODEL_DEFAULT,
             label="Model",
-            scale=1,
+            scale=2,
+            visible=True,
+        )
+        cloud_model_dropdown = gr.Dropdown(
+            choices=CLOUD_MODEL_CHOICES["Anthropic"],
+            value=CLOUD_MODEL_CHOICES["Anthropic"][0],
+            label="Model",
+            scale=2,
+            visible=False,
+        )
+        api_key_box = gr.Textbox(
+            label="API Key",
+            placeholder="sk-ant-... or sk-...",
+            type="password",
+            lines=1,
+            scale=2,
+            visible=False,
         )
         run_btn = gr.Button("Chart It", variant="primary", scale=3, elem_classes="chart-btn")
 
@@ -392,16 +419,25 @@ with gr.Blocks(title="Cartograph") as demo:
         "</div>"
     )
 
-    run_btn.click(
-        fn=research,
-        inputs=[query_box, depth_radio, model_dropdown],
-        outputs=[status_box, report_box],
+    def _on_provider_change(provider: str):
+        is_ollama = provider == "Ollama (local)"
+        cloud_choices = CLOUD_MODEL_CHOICES.get(provider, CLOUD_MODEL_CHOICES["Anthropic"])
+        return (
+            gr.update(visible=is_ollama),                                           # model_dropdown
+            gr.update(visible=not is_ollama, choices=cloud_choices, value=cloud_choices[0]),  # cloud_model_dropdown
+            gr.update(visible=not is_ollama),                                       # api_key_box
+        )
+
+    provider_radio.change(
+        fn=_on_provider_change,
+        inputs=[provider_radio],
+        outputs=[model_dropdown, cloud_model_dropdown, api_key_box],
     )
-    query_box.submit(
-        fn=research,
-        inputs=[query_box, depth_radio, model_dropdown],
-        outputs=[status_box, report_box],
-    )
+
+    _inputs = [query_box, depth_radio, model_dropdown, cloud_model_dropdown, provider_radio, api_key_box]
+
+    run_btn.click(fn=research, inputs=_inputs, outputs=[status_box, report_box])
+    query_box.submit(fn=research, inputs=_inputs, outputs=[status_box, report_box])
 
 if __name__ == "__main__":
     demo.launch(theme=gr.themes.Soft(), css=CSS, js=_PAGE_JS)

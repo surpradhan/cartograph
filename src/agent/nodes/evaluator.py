@@ -5,17 +5,17 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_ollama import ChatOllama
 
 from src.agent.state import ResearchState
 from src.config import AgentConfig
+from src.llm import build_llm
 
 logger = logging.getLogger(__name__)
 
 PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "evaluator.txt"
 
 
-def _score_source(llm: ChatOllama, source: dict, query: str, system_prompt: str) -> dict:
+def _score_source(llm, source: dict, query: str, system_prompt: str) -> dict:
     """Ask the LLM to score a single source on a 1-5 relevance scale."""
     content = (
         f"Research query: {query}\n"
@@ -97,7 +97,7 @@ def run_evaluator(state: ResearchState, config: AgentConfig) -> dict:
             "retry_count": retry_count,
         }
 
-    llm = ChatOllama(model=config.model_name, temperature=0.0, timeout=config.llm_timeout)
+    llm = build_llm(config)
     query = state["query"]
 
     # Score all sources in parallel (Ollama handles one request at a time, but parallelism

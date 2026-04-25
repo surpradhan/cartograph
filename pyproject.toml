@@ -23,6 +23,12 @@ dev = [
     "pytest>=8.0.0",
     "ruff>=0.8.0",
 ]
+anthropic = [
+    "langchain-anthropic>=0.3.0",
+]
+openai = [
+    "langchain-openai>=0.3.0",
+]
 
 [tool.ruff]
 line-length = 100
