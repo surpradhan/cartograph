@@ -71,3 +71,9 @@ def test_openai_returns_chat_openai():
         llm = build_llm(cfg)
     mock_cls.assert_called_once()
     assert llm is mock_cls.return_value
+
+
+def test_invalid_provider_rejected_at_config_construction():
+    """AgentConfig should reject unknown provider values at construction time."""
+    with pytest.raises(Exception):  # pydantic ValidationError
+        AgentConfig(provider="gemini")  # type: ignore[arg-type]

@@ -1,9 +1,11 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field, field_validator
 
 
 class AgentConfig(BaseModel):
     # LLM
-    provider: str = "ollama"   # "ollama" | "anthropic" | "openai"
+    provider: Literal["ollama", "anthropic", "openai"] = "ollama"
     api_key: str = ""
     model_name: str = "llama3.1"
     temperature: float = Field(default=0.3, ge=0.0, le=1.0)
