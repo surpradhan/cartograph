@@ -60,7 +60,10 @@ textarea, input[type="text"], input[type="search"] {
 textarea::placeholder { color: #555555 !important; }
 
 /* Radio option text — cream for unselected, black for selected */
-.wrap label span { color: #e8dcc8 !important; font-size: 0.9rem !important; letter-spacing: normal !important; text-transform: none !important; }
+.wrap label span {
+    color: #e8dcc8 !important; font-size: 0.9rem !important;
+    letter-spacing: normal !important; text-transform: none !important;
+}
 .wrap label.selected span { color: #0d0d0d !important; font-weight: 700 !important; }
 
 /* Subtext under dropdowns */
@@ -178,7 +181,8 @@ tr.tr-body:hover td { color: #c8922a !important; }
 
 /* Survey Depth — stretch pills across full row width */
 .depth-radio .wrap { display: flex !important; gap: 8px !important; }
-.depth-radio .wrap label { flex: 1 !important; justify-content: center !important; text-align: center !important; }
+.depth-radio .wrap label { flex: 1 !important; justify-content: center !important;
+    text-align: center !important; }
 
 /* History accordion */
 .history-accordion { margin-top: 12px !important; }
@@ -335,7 +339,10 @@ def _prepare_export(report: str):
     return gr.update(visible=True), gr.update(value=tmp.name, visible=True)
 
 
-def research(query: str, depth: str, model: str, cloud_model: str, provider: str, api_key: str, backend: str, tavily_key: str):
+def research(
+    query: str, depth: str, model: str, cloud_model: str,
+    provider: str, api_key: str, backend: str, tavily_key: str,
+):
     """
     Generator — yields (status, report) tuples so Gradio can stream progress.
     Each node completion updates the status bar; the report appears once synthesis finishes.
@@ -343,6 +350,12 @@ def research(query: str, depth: str, model: str, cloud_model: str, provider: str
     query = query.strip()
     if not query:
         yield "Drop a pin on your research topic above.", ""
+        return
+    if len(query) < 10:
+        yield "Your query is too short — try describing your topic in more detail.", ""
+        return
+    if len(query) > 500:
+        yield "Query too long (500 character max) — try a more focused topic.", ""
         return
 
     is_ollama = provider == "Ollama (local)"
@@ -527,7 +540,10 @@ with gr.Blocks(title="Cartograph") as demo:
         outputs=[tavily_key_box],
     )
 
-    _inputs = [query_box, depth_radio, model_dropdown, cloud_model_dropdown, provider_radio, api_key_box, backend_radio, tavily_key_box]
+    _inputs = [
+        query_box, depth_radio, model_dropdown, cloud_model_dropdown,
+        provider_radio, api_key_box, backend_radio, tavily_key_box,
+    ]
     _history_inputs = [query_box, depth_radio, model_dropdown, report_box]
 
     run_btn.click(

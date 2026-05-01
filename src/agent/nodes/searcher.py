@@ -10,7 +10,9 @@ logger = logging.getLogger(__name__)
 
 def _search(query: str, config: AgentConfig) -> list[dict]:
     if config.search_backend == "tavily":
-        return tavily.search(query, max_results=config.results_per_query, api_key=config.tavily_api_key)
+        return tavily.search(
+            query, max_results=config.results_per_query, api_key=config.tavily_api_key
+        )
     return ddg.search(query, max_results=config.results_per_query)
 
 
