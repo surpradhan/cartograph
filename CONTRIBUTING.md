@@ -5,7 +5,7 @@ Thanks for your interest. Here's how to get set up and what's useful to know.
 ## Setup
 
 ```bash
-git clone https://github.com/surabhi/cartograph.git
+git clone https://github.com/surpradhan/cartograph.git
 cd cartograph
 uv venv && source .venv/bin/activate
 uv sync
@@ -14,7 +14,7 @@ uv sync
 ## Running tests
 
 ```bash
-PYTHONPATH=. pytest tests/ -v       # all 44 tests
+PYTHONPATH=. pytest tests/ -v       # all 102 tests
 PYTHONPATH=. pytest tests/test_evaluator.py -v   # single file
 ```
 

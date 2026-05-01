@@ -45,7 +45,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 ### 2. Clone and install
 
 ```bash
-git clone https://github.com/surabhi/cartograph.git
+git clone https://github.com/surpradhan/cartograph.git
 cd cartograph
 uv venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 uv sync
@@ -160,7 +160,7 @@ cartograph/
 make install   # create venv and install deps
 make run       # start the app
 make check     # run pre-flight health check
-make test      # run all 44 tests
+make test      # run all 102 tests
 make lint      # ruff check
 make clean     # remove venv and caches
 ```

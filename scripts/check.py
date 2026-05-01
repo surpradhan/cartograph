@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Pre-flight check — run before `python app.py` to verify all dependencies."""
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
@@ -27,8 +28,9 @@ else:
     fail(f"Python 3.11+ required. You have {v}. Install from https://python.org")
 
 # 2 & 3. Ollama reachability + model check
+_ollama_host = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
 try:
-    with urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3) as resp:
+    with urllib.request.urlopen(f"{_ollama_host}/api/tags", timeout=3) as resp:
         data = json.loads(resp.read())
     models = [m["name"] for m in data.get("models", [])]
     if models:
