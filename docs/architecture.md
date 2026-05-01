@@ -41,7 +41,9 @@ search_results → Evaluator → evaluated_sources, coverage_sufficient, retry_c
 evaluated_sources → Synthesizer → report
 ```
 
-See `docs/architecture.mermaid` for the visual diagram.
+See `docs/architecture.mermaid` for the visual diagram source.
+
+![Cartograph architecture](architecture.png)
 
 ## Design Decisions
 

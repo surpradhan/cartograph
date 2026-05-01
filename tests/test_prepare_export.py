@@ -1,27 +1,42 @@
 import sys
 from pathlib import Path
-from types import ModuleType
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-# Stub out heavy / unavailable dependencies before importing app
-for _mod in (
+# Stub out heavy / unavailable dependencies before importing app.
+# Only set stubs that aren't already in sys.modules so we don't corrupt the
+# real modules that other test files need at runtime. We restore non-persistent
+# stubs after app is imported so patch("src.agent.graph...") works elsewhere.
+_STUB_MODS = (
     "ddgs",
+    "ddgs.exceptions",
     "gradio",
     "src.agent.graph",
     "src.history",
     "src.llm",
-):
+)
+_originals: dict = {}
+for _mod in _STUB_MODS:
+    _originals[_mod] = sys.modules.get(_mod)
     if _mod not in sys.modules:
         sys.modules[_mod] = MagicMock()
 
 # gradio needs a real-ish update() for the return-value assertions
 import gradio as _gr  # noqa: E402  (already mocked above)
+
 _gr.update.side_effect = lambda **kw: kw  # return the kwargs dict
 
 import app as app_module  # noqa: E402
 from app import _prepare_export  # noqa: E402
+
+# Restore modules that were stubbed only for the app import — this lets other
+# test files that patch "src.agent.graph.*" resolve the real module.
+for _mod in ("src.agent.graph", "src.history", "src.llm"):
+    if _originals[_mod] is None:
+        sys.modules.pop(_mod, None)
+    else:
+        sys.modules[_mod] = _originals[_mod]
 
 
 @pytest.fixture(autouse=True)

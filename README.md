@@ -18,20 +18,69 @@ The agent runs as a **LangGraph state machine** with a self-correcting retry loo
 
 ## Quick Start
 
-**Prerequisites:** Python 3.11+, [Ollama](https://ollama.com) installed
+### 1. Install prerequisites
 
+**Ollama** (runs your local LLM):
+```bash
+# macOS / Linux
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Windows — download the installer from https://ollama.com/download
+```
+
+Then pull the default model (one-time, ~5 GB):
 ```bash
 ollama pull llama3.1
+```
 
+**uv** (Python package manager):
+```bash
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+### 2. Clone and install
+
+```bash
 git clone https://github.com/surabhi/cartograph.git
 cd cartograph
-
-uv venv && source .venv/bin/activate
+uv venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 uv sync
+```
 
+### 3. Verify setup (optional but recommended)
+
+```bash
+python scripts/check.py
+```
+
+### 4. Run
+
+```bash
 python app.py
 # Open http://localhost:7860
 ```
+
+Having trouble? See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+
+---
+
+## Using cloud providers (optional)
+
+Cartograph works out of the box with Ollama. To use Anthropic or OpenAI instead,
+install the relevant extra and enter your API key in the UI:
+
+```bash
+uv add langchain-anthropic   # for Anthropic Claude
+uv add langchain-openai      # for OpenAI GPT models
+uv add tavily-python         # for Tavily search (optional alternative to DuckDuckGo)
+```
+
+Cloud providers send queries to external APIs — your research topics will be
+visible to those providers. Use Ollama if privacy matters.
 
 ---
 
@@ -94,8 +143,27 @@ cartograph/
 
 - DuckDuckGo rate-limits aggressive parallel searches — add jitter or a search provider fallback
 - Llama 3.1 8B occasionally produces verbose synthesis; a larger model improves quality
-- No persistence — each session starts fresh (by design; avoids cross-session pollution)
-- Future: PDF ingestion, async search, MCP tool integration, streaming token output
+- Research history is stored locally in `history.db` — not synced across machines
+
+**Future ideas:**
+- PDF / document ingestion as a research source
+- Streaming token output (currently streams by node, not by token)
+- MCP tool integration for custom search providers
+- Export to PDF or DOCX in addition to Markdown
+- Re-run eval suite after any synthesizer prompt changes to track factual grounding score
+
+---
+
+## Development
+
+```bash
+make install   # create venv and install deps
+make run       # start the app
+make check     # run pre-flight health check
+make test      # run all 44 tests
+make lint      # ruff check
+make clean     # remove venv and caches
+```
 
 ---
 
