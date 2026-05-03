@@ -69,7 +69,6 @@ _optional = {
     "faiss": "faiss-cpu or faiss-gpu — URL-based dedup will be used instead of semantic",
     "langchain_anthropic": "langchain-anthropic — Anthropic provider unavailable",
     "langchain_openai": "langchain-openai — OpenAI provider unavailable",
-    "tavily": "tavily-python — Tavily search provider unavailable",
 }
 for module, note in _optional.items():
     try:

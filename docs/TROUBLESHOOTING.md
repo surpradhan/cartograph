@@ -66,12 +66,7 @@ python app.py
 
 **Symptom:** "0 sources surveyed" or `DDGSException` in logs.  
 **Cause:** DuckDuckGo rate-limited the request (common with quick repeated runs).  
-**Fix:** Wait 30–60 seconds before retrying. For sustained use, switch to Tavily:
-```bash
-uv add tavily-python
-# Get a free API key at https://tavily.com
-# Enter it in the Tavily API Key field in the UI
-```
+**Fix:** Wait 30–60 seconds before retrying. DuckDuckGo rate limits reset quickly under normal usage.
 
 ---
 

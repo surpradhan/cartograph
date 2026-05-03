@@ -3,17 +3,9 @@ import logging
 from src.agent.state import ResearchState
 from src.config import AgentConfig
 from src.retrieval.cache import SourceCache
-from src.search import ddg, tavily
+from src.search import ddg
 
 logger = logging.getLogger(__name__)
-
-
-def _search(query: str, config: AgentConfig) -> list[dict]:
-    if config.search_backend == "tavily":
-        return tavily.search(
-            query, max_results=config.results_per_query, api_key=config.tavily_api_key
-        )
-    return ddg.search(query, max_results=config.results_per_query)
 
 
 def run_searcher(state: ResearchState, config: AgentConfig) -> dict:
@@ -24,8 +16,8 @@ def run_searcher(state: ResearchState, config: AgentConfig) -> dict:
     A new cache is created on every call so that retry cycles are not blocked
     by results that were already found (and cached) in a previous cycle.
 
-    Note: ddgs uses primp (a Rust HTTP library) which is not thread-safe.
-    Searches run sequentially to avoid hangs in ThreadPoolExecutor.
+    Note: ddgs uses primp (a Rust HTTP library) which is not thread-safe;
+    searches run sequentially.
 
     Input state keys:  sub_questions
     Output state keys: search_results
@@ -43,7 +35,7 @@ def run_searcher(state: ResearchState, config: AgentConfig) -> dict:
 
     for q in sub_questions:
         try:
-            results = _search(q, config)
+            results = ddg.search(q, max_results=config.results_per_query)
             if not results:
                 logger.warning("No results returned for sub-question: '%s'", q)
                 continue

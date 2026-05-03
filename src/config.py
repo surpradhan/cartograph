@@ -12,14 +12,12 @@ class AgentConfig(BaseModel):
     llm_timeout: int = Field(default=120, gt=0)
 
     # Search
-    search_backend: Literal["ddg", "tavily"] = "ddg"
-    tavily_api_key: str = ""
     results_per_query: int = Field(default=5, ge=1, le=20)
     max_sub_questions: int = Field(default=5, ge=1, le=10)
 
     # Evaluation
     min_relevance_score: int = Field(default=3, ge=1, le=5)
-    min_sources_per_question: int = Field(default=1, ge=1)
+    min_sources_per_question: int = Field(default=1, ge=1)  # raise to 2+ to tighten quality gate
     max_retries: int = Field(default=2, ge=0)
 
     # FAISS
