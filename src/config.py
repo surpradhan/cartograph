@@ -17,7 +17,7 @@ class AgentConfig(BaseModel):
 
     # Evaluation
     min_relevance_score: int = Field(default=3, ge=1, le=5)
-    min_sources_per_question: int = Field(default=1, ge=1)
+    min_sources_per_question: int = Field(default=1, ge=1)  # raise to 2+ to tighten quality gate
     max_retries: int = Field(default=2, ge=0)
 
     # FAISS
