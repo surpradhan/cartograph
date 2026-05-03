@@ -2,10 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from src.retrieval.cache import SourceCache
-
 
 # ── URL-fallback mode (no FAISS) ──────────────────────────────────────────────
 

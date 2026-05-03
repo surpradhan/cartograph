@@ -113,7 +113,7 @@ def test_synthesizer_missing_prompt_uses_fallback_prompt(mock_llm_cls, mock_path
 
 @patch("src.agent.nodes.synthesizer.build_llm")
 def test_synthesizer_retries_when_no_citations(mock_llm_cls, config):
-    """If the first LLM response has no [N] citations, a second call is made with a stricter prompt."""
+    """If the first LLM response has no [N] citations, a second call is made with a stricter prompt."""  # noqa: E501
     mock_llm = MagicMock()
     # First call: no citations; second call: proper citations
     mock_llm.invoke.side_effect = [

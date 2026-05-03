@@ -3,7 +3,9 @@ from evals.judges.deterministic import check_required_topics
 
 
 def test_string_topic_found():
-    results = check_required_topics("The Bronze Age collapse involved many civilizations.", ["civilization"])
+    results = check_required_topics(
+        "The Bronze Age collapse involved many civilizations.", ["civilization"]
+    )
     assert results[0].passed is True
 
 

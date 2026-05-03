@@ -76,7 +76,6 @@ install the relevant extra and enter your API key in the UI:
 ```bash
 uv add langchain-anthropic   # for Anthropic Claude
 uv add langchain-openai      # for OpenAI GPT models
-uv add tavily-python         # for Tavily search (optional alternative to DuckDuckGo)
 ```
 
 Cloud providers send queries to external APIs — your research topics will be
@@ -95,7 +94,7 @@ All tuneable parameters live in `src/config.py`:
 | `max_sub_questions` | `5` | Sub-questions the planner generates |
 | `results_per_query` | `5` | DuckDuckGo results per sub-question |
 | `min_relevance_score` | `3` | Minimum score (1–5) to keep a source |
-| `min_sources_per_question` | `2` | Sources required per sub-question before proceeding |
+| `min_sources_per_question` | `1` | Sources required per sub-question before proceeding |
 | `max_retries` | `2` | Search/evaluate retry cycles if coverage is insufficient |
 | `dedup_threshold` | `0.92` | Cosine similarity threshold for FAISS deduplication |
 | `snippet_max_chars` | `500` | Characters of snippet passed to the synthesizer |
@@ -141,7 +140,7 @@ cartograph/
 
 ## Limitations & Future Work
 
-- DuckDuckGo rate-limits aggressive parallel searches — add jitter or a search provider fallback
+- DuckDuckGo may rate-limit rapid successive searches — add jitter or back off between runs
 - Llama 3.1 8B occasionally produces verbose synthesis; a larger model improves quality
 - Research history is stored locally in `history.db` — not synced across machines
 
@@ -160,7 +159,7 @@ cartograph/
 make install   # create venv and install deps
 make run       # start the app
 make check     # run pre-flight health check
-make test      # run all 102 tests
+make test      # run all 95 tests
 make lint      # ruff check
 make clean     # remove venv and caches
 ```

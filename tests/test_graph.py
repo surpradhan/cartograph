@@ -90,7 +90,10 @@ def test_graph_planner_fallback_to_original_query(
     with _patch_cache():
         mock_planner_llm_cls.return_value.invoke.side_effect = RuntimeError("ollama down")
         mock_search.return_value = [
-            {"title": "T", "url": "https://t.com", "snippet": "content", "sub_question": "Test research topic"},
+            {
+                "title": "T", "url": "https://t.com",
+                "snippet": "content", "sub_question": "Test research topic",
+            },
         ]
         mock_evaluator_llm_cls.return_value = _make_llm_mock('{"score": 4, "reason": "OK"}')
         mock_synthesizer_llm_cls.return_value = _make_llm_mock("Fallback report.")
