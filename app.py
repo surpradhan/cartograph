@@ -123,7 +123,7 @@ input[type="radio"]:checked + span { color: #0d0d0d !important; font-weight: 700
     border-color: #2e2e2e !important;
 }
 
-/* Markdown prose */
+/* Markdown prose (title, footer, and other gr.Markdown blocks) */
 .prose, .prose p, .prose li { color: #e8dcc8 !important; }
 .prose h1, .prose h2, .prose h3, .prose h4 {
     color: #c8922a !important;
@@ -188,6 +188,30 @@ tr.tr-body:hover td { color: #c8922a !important; }
 .history-accordion { margin-top: 12px !important; }
 .history-accordion .label-wrap { color: #c8922a !important; font-size: 0.85rem !important; }
 
+/* Report HTML box */
+#report-box {
+    background-color: #1a1a1a !important;
+    border: 1px solid #2e2e2e !important;
+    border-radius: 8px !important;
+    padding: 16px 20px !important;
+    color: #e8dcc8 !important;
+    font-size: 0.95rem !important;
+    line-height: 1.7 !important;
+}
+#report-box h1, #report-box h2, #report-box h3, #report-box h4 {
+    color: #c8922a !important;
+    margin: 1.2em 0 0.4em !important;
+    border-bottom: 1px solid #253d52 !important;
+    padding-bottom: 4px !important;
+}
+#report-box p { margin: 0.6em 0 !important; }
+#report-box ul { padding-left: 1.4em !important; margin: 0.4em 0 !important; }
+#report-box li { margin: 0.2em 0 !important; }
+#report-box a { color: #4a9b8e !important; }
+#report-box a:hover { color: #5ab8aa !important; }
+#report-box strong { color: #d4bc94 !important; }
+#report-box em { color: #b8a880 !important; }
+
 /* Export buttons row */
 .export-row { margin-top: 8px !important; }
 .export-row button {
@@ -225,7 +249,19 @@ tr.tr-body:hover td { color: #c8922a !important; }
         min-width: 0 !important;
     }
 }
+
+/* report_txt: streaming sink for raw markdown.
+   MUST stay in the normal document flow at its natural height so that
+   Gradio 6 / Svelte 5 SSE DOM updates reach the textarea.
+   opacity: 0 hides it visually while leaving it fully in-flow.
+   clip-path breaks SSE delivery in Gradio 6 / Svelte 5. */
+#report-txt {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
 """
+
 
 
 def _available_models() -> tuple[list[str], str]:
@@ -244,7 +280,19 @@ def _available_models() -> tuple[list[str], str]:
 _MODEL_CHOICES, _MODEL_DEFAULT = _available_models()
 
 # ── Page-load JS ──────────────────────────────────────────────────────────────
-# Gradio doesn't wire aria-labels to its inputs; inject them for screen readers.
+# Two responsibilities:
+#   1. Aria-label injection (Gradio doesn't wire these for screen readers).
+#   2. Report renderer: polls #report-txt textarea every 200 ms and injects
+#      rendered HTML into #report-box whenever the value changes.
+#
+# Why polling?  Gradio 6 / Svelte 5 streaming updates reliably propagate to
+# DOM textareas, but NON-streaming .then() output updates do not (the Svelte
+# store is updated but the DOM textarea is never written).  Attempting to
+# deliver the report via a .then() chain — whether to gr.HTML, gr.Textbox, or
+# a separate "carrier" textbox — all fail at the DOM level.  Streaming,
+# however, DOES work: after research completes, #report-txt textarea holds the
+# full raw markdown.  Polling that textarea and rendering client-side sidesteps
+# the Gradio 6 reactivity gap entirely.
 _PAGE_JS = """
 function addAriaLabels() {
     const textareas = document.querySelectorAll('textarea');
@@ -267,6 +315,59 @@ const _cartographObserver = new MutationObserver(() => {
 });
 _cartographObserver.observe(document.body, { childList: true, subtree: true });
 addAriaLabels();
+
+// ── Report renderer (polling) ─────────────────────────────────────────────────
+function _cgEsc(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function _cgRender(mdText) {
+    const box = document.getElementById('report-box');
+    if (!box) return;
+    const ph = '<p><em>Plant a pin above and click <strong>Chart It</strong>'
+             + ' — your map will appear here.</em></p>';
+    if (!mdText || !mdText.trim()) { box.innerHTML = ph; return; }
+    const lines = mdText.split('\\n');
+    let html = '', inList = false;
+    function closeList() { if(inList){html+='</ul>';inList=false;} }
+    for (const line of lines) {
+        const e = _cgEsc(line);
+        if (/^#### /.test(e))     { closeList(); html+='<h4>'+e.slice(5)+'</h4>'; }
+        else if (/^### /.test(e)) { closeList(); html+='<h3>'+e.slice(4)+'</h3>'; }
+        else if (/^## /.test(e))  { closeList(); html+='<h2>'+e.slice(3)+'</h2>'; }
+        else if (/^# /.test(e))   { closeList(); html+='<h1>'+e.slice(2)+'</h1>'; }
+        else if (/^- /.test(e))   {
+            if(!inList){html+='<ul>';inList=true;}
+            html+='<li>'+e.slice(2)+'</li>';
+        }
+        else if (!e.trim())       { closeList(); }
+        else                      { closeList(); html+='<p>'+e+'</p>'; }
+    }
+    closeList();
+    html = html.replace(/\\*\\*\\*(.+?)\\*\\*\\*/g, '<strong><em>$1</em></strong>');
+    html = html.replace(/\\*\\*(.+?)\\*\\*/g,     '<strong>$1</strong>');
+    html = html.replace(/\\*([^*\\n]+?)\\*/g,    '<em>$1</em>');
+    // Restrict hrefs to http/https/ftp — prevents javascript: injection from LLM output
+    html = html.replace(/\\[([^\\]]+)\\]\\(((?:https?|ftp):\\/\\/[^)]+)\\)/g,
+                        '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    box.innerHTML = html;
+}
+
+let _cgLastTxt = undefined;
+const _cgPlaceholderLen = 98; // placeholder innerHTML is ~98 chars
+setInterval(function() {
+    const el = document.getElementById('report-txt');
+    if (!el) return;
+    const ta = el.querySelector('textarea');
+    if (!ta) return;
+    const cur = ta.value;
+    const box = document.getElementById('report-box');
+    // Re-render if value changed OR if textarea has content but box still shows placeholder
+    const boxIsEmpty = !box || box.innerHTML.length <= _cgPlaceholderLen;
+    if (cur !== _cgLastTxt || (cur && cur.trim() && boxIsEmpty)) {
+        _cgLastTxt = cur;
+        _cgRender(cur);
+    }
+}, 200);
 """
 
 
@@ -309,44 +410,100 @@ def _history_choices() -> list[tuple[str, int]]:
     ]
 
 
-def _load_history_report(run_id: int | None) -> str:
+_REPORT_PLACEHOLDER = (
+    "*Plant a pin above and click **Chart It** — your map will appear here.*"
+)
+_REPORT_PLACEHOLDER_HTML = (
+    "<p><em>Plant a pin above and click <strong>Chart It</strong>"
+    " — your map will appear here.</em></p>"
+)
+
+
+
+# ── History helpers ────────────────────────────────────────────────────────────
+
+def _load_history_report(run_id: int | None):
+    """Stream raw markdown for the selected history entry → report_txt.
+
+    Yielding rather than returning forces Gradio to use the SSE streaming path,
+    which reliably propagates the value to the DOM textarea.  The page-load
+    setInterval then detects the change and re-renders #report-box.
+    """
     if run_id is None:
-        return ""
-    return load_by_id(run_id)
-
-
-def _save_and_refresh(query: str, depth: str, model: str, report: str):
-    """Save completed run to history and return updated dropdown."""
-    if report and not report.startswith("Error:") and not report.startswith("Drop a pin"):
-        save_run(query, depth, model, report)
-    return gr.update(choices=_history_choices(), value=None)
+        yield ""
+        return
+    yield load_by_id(run_id) or ""
 
 
 _last_export_tmp: Path | None = None
 
+# Module-level report cache: the research generator stores the completed report
+# here so _after_research can read it without listing report_txt in _after_inputs.
+# Listing report_txt in .then() inputs causes Gradio 6 to reset its DOM textarea
+# to the initial value ("") after reading it — clearing the streaming-set value
+# that the setInterval renderer depends on.
+_last_completed_report: str = ""
 
-def _prepare_export(report: str):
-    """Write report to a temp file for download; show/hide export row."""
+
+def _after_research(query: str, depth: str, model: str):
+    """Single .then() handler after research completes.
+
+    Returns 3 values: [history_dropdown, export_row, dl_btn].
+    Reads the completed report from _last_completed_report (set by the research
+    generator) rather than from a Gradio input component — that avoids the
+    Gradio 6 behaviour where listing report_txt in .then() inputs resets its
+    DOM textarea, erasing the streaming-written value the setInterval needs.
+    """
     global _last_export_tmp
-    if not report or report.startswith("Error:") or report.startswith("Drop a pin"):
-        return gr.update(visible=False), gr.update(value=None, visible=False)
-    if _last_export_tmp is not None:
-        _last_export_tmp.unlink(missing_ok=True)
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".md", mode="w", encoding="utf-8")
-    tmp.write(report)
-    tmp.close()
-    _last_export_tmp = Path(tmp.name)
-    return gr.update(visible=True), gr.update(value=tmp.name, visible=True)
+    report = _last_completed_report
+
+    _good = (
+        bool(report)
+        and not report.startswith("Error:")
+        and not report.startswith("Drop a pin")
+        and report != _REPORT_PLACEHOLDER
+    )
+
+    # ── history ───────────────────────────────────────────────────────────────
+    if _good:
+        save_run(query, depth, model, report)
+
+    # ── export ────────────────────────────────────────────────────────────────
+    if _good:
+        if _last_export_tmp is not None:
+            _last_export_tmp.unlink(missing_ok=True)
+        tmp = tempfile.NamedTemporaryFile(
+            delete=False, suffix=".md", mode="w", encoding="utf-8"
+        )
+        tmp.write(report)
+        tmp.close()
+        _last_export_tmp = Path(tmp.name)
+        return (
+            gr.update(choices=_history_choices(), value=None),
+            gr.update(visible=True),
+            gr.update(value=tmp.name, visible=True),
+        )
+
+    return (
+        gr.update(choices=_history_choices(), value=None),
+        gr.update(visible=False),
+        gr.update(value=None, visible=False),
+    )
+
+
 
 
 def research(
     query: str, depth: str, model: str, cloud_model: str,
-    provider: str, api_key: str, backend: str, tavily_key: str,
+    provider: str, api_key: str,
 ):
+    """Generator — yields (status, raw_markdown) pairs to [status_box, report_txt].
+
+    report_txt must be interactive=False and in-flow (not off-screen absolute).
+    Stores the completed report in _last_completed_report so _after_research
+    can read it without listing report_txt in .then() inputs.
     """
-    Generator — yields (status, report) tuples so Gradio can stream progress.
-    Each node completion updates the status bar; the report appears once synthesis finishes.
-    """
+    global _last_completed_report
     query = query.strip()
     if not query:
         yield "Drop a pin on your research topic above.", ""
@@ -361,11 +518,9 @@ def research(
     is_ollama = provider == "Ollama (local)"
     cfg = AgentConfig(
         provider="ollama" if is_ollama else provider.lower(),
-        api_key="" if is_ollama else api_key.strip(),
+        api_key="" if is_ollama else (api_key or "").strip(),
         model_name=model if is_ollama else cloud_model,
         max_sub_questions=DEPTH_MAP[depth],
-        search_backend="tavily" if backend == "Tavily" else "ddg",
-        tavily_api_key=tavily_key.strip(),
     )
     graph = build_graph(cfg)
 
@@ -407,14 +562,17 @@ def research(
             elif node_name == "synthesizer":
                 report = node_output.get("report", "")
 
-            yield _status_line(node_name, detail, current_retry, cfg.max_retries), report
+            status = _status_line(node_name, detail, current_retry, cfg.max_retries)
+            yield status, report
 
     except Exception as exc:  # noqa: BLE001
         error_msg = str(exc)
         hint = _ollama_hint(error_msg)
-        yield f"Error: {error_msg}{hint}", report
+        _last_completed_report = ""
+        yield f"Error: {error_msg}{hint}", ""
         return
 
+    _last_completed_report = report
     yield "Your map is ready.", report
 
 
@@ -469,22 +627,7 @@ with gr.Blocks(title="Cartograph") as demo:
             scale=2,
             visible=False,
         )
-        backend_radio = gr.Radio(
-            choices=["DuckDuckGo", "Tavily"],
-            value="DuckDuckGo",
-            label="Search",
-            elem_classes="depth-radio",
-            scale=1,
-        )
         run_btn = gr.Button("Chart It", variant="primary", scale=3, elem_classes="chart-btn")
-
-    tavily_key_box = gr.Textbox(
-        label="Tavily API Key",
-        placeholder="tvly-...",
-        type="password",
-        visible=False,
-        lines=1,
-    )
 
     status_box = gr.Textbox(
         label="Survey Log",
@@ -493,7 +636,23 @@ with gr.Blocks(title="Cartograph") as demo:
         placeholder="The survey will appear here once you plant a pin…",
     )
 
-    report_box = gr.Markdown(label="Field Report")
+    # report_box uses gr.HTML so it can be updated via .then() after research.
+    # gr.Markdown does not respond to Gradio 6 update events (Svelte 5 reactivity
+    # gap); gr.HTML's component handles value injection correctly.
+    report_box = gr.HTML(
+        value=_REPORT_PLACEHOLDER_HTML, label="Field Report", elem_id="report-box"
+    )
+
+    # report_txt: streaming sink for raw markdown.
+    # Must be interactive=False (Gradio 6 / Svelte 5 uses bind:value for
+    # interactive textboxes, which blocks SSE updates reaching the DOM).
+    # Must NOT use off-screen CSS (position:absolute; left:-9999px) — that
+    # removes it from the document flow and Gradio's Svelte runtime then skips
+    # DOM updates for it.  Hidden via opacity:0 in CSS so it stays in-flow.
+    report_txt = gr.Textbox(
+        value="", interactive=False, visible=True,
+        elem_id="report-txt", label="", lines=1,
+    )
 
     with gr.Row(visible=False, elem_classes="export-row") as export_row:
         copy_btn = gr.Button("⎘ Copy Markdown", variant="secondary", scale=1)
@@ -534,44 +693,52 @@ with gr.Blocks(title="Cartograph") as demo:
         outputs=[model_dropdown, cloud_model_dropdown, api_key_box],
     )
 
-    backend_radio.change(
-        fn=lambda b: gr.update(visible=(b == "Tavily")),
-        inputs=[backend_radio],
-        outputs=[tavily_key_box],
-    )
-
     _inputs = [
         query_box, depth_radio, model_dropdown, cloud_model_dropdown,
-        provider_radio, api_key_box, backend_radio, tavily_key_box,
+        provider_radio, api_key_box,
     ]
-    _history_inputs = [query_box, depth_radio, model_dropdown, report_box]
+    # _after_research reads the report from _last_completed_report (module-level
+    # cache) so report_txt is NOT listed in _after_inputs.  Listing report_txt
+    # in .then() inputs would cause Gradio 6 to reset its DOM textarea to ""
+    # after reading — erasing the streaming-written value the setInterval needs.
+    _after_inputs = [query_box, depth_radio, model_dropdown]
+    _after_outputs = [history_dropdown, export_row, dl_btn]
+
+    # Force-render JS: runs after _after_research completes, guaranteeing the
+    # SSE-delivered report in #report-txt textarea is rendered into #report-box.
+    # The setInterval polling handles intermediate streaming renders; this .then()
+    # is the reliable final render once the full run has settled.
+    _force_render_js = (
+        "() => { const ta = document.getElementById('report-txt')"
+        "?.querySelector('textarea');"
+        " if (ta?.value?.trim()) window._cgRender(ta.value); return []; }"
+    )
 
     run_btn.click(
-        fn=research, inputs=_inputs, outputs=[status_box, report_box],
+        fn=research, inputs=_inputs, outputs=[status_box, report_txt],
     ).then(
-        fn=_save_and_refresh, inputs=_history_inputs, outputs=[history_dropdown],
-    ).then(
-        fn=_prepare_export, inputs=[report_box], outputs=[export_row, dl_btn],
-    )
+        fn=_after_research, inputs=_after_inputs, outputs=_after_outputs,
+    ).then(fn=None, js=_force_render_js)
 
     query_box.submit(
-        fn=research, inputs=_inputs, outputs=[status_box, report_box],
+        fn=research, inputs=_inputs, outputs=[status_box, report_txt],
     ).then(
-        fn=_save_and_refresh, inputs=_history_inputs, outputs=[history_dropdown],
-    ).then(
-        fn=_prepare_export, inputs=[report_box], outputs=[export_row, dl_btn],
-    )
+        fn=_after_research, inputs=_after_inputs, outputs=_after_outputs,
+    ).then(fn=None, js=_force_render_js)
 
+    # History load: yield once → SSE streaming path → report_txt DOM updated →
+    # setInterval detects change → re-renders #report-box.
     history_dropdown.change(
         fn=_load_history_report,
         inputs=[history_dropdown],
-        outputs=[report_box],
+        outputs=[report_txt],
     )
 
+    # Copy: read from report_txt DOM textarea (populated by streaming).
     copy_btn.click(
         fn=None,
-        js="(report) => { navigator.clipboard.writeText(report); }",
-        inputs=[report_box],
+        js="(report) => { navigator.clipboard.writeText(report); return []; }",
+        inputs=[report_txt],
     )
 
 if __name__ == "__main__":
