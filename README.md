@@ -3,6 +3,8 @@
 > Maps out knowledge so you don't have to — autonomous research agent that decomposes topics,
 > searches the web, evaluates sources, and generates cited reports. Fully local, zero API keys.
 
+![Cartograph demo](demo/demo.png)
+
 ---
 
 ## How It Works
