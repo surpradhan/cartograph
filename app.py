@@ -1,6 +1,4 @@
-import html as _html_lib
 import logging
-import re as _re
 import tempfile
 from pathlib import Path
 
@@ -348,7 +346,8 @@ function _cgRender(mdText) {
     html = html.replace(/\\*\\*\\*(.+?)\\*\\*\\*/g, '<strong><em>$1</em></strong>');
     html = html.replace(/\\*\\*(.+?)\\*\\*/g,     '<strong>$1</strong>');
     html = html.replace(/\\*([^*\\n]+?)\\*/g,    '<em>$1</em>');
-    html = html.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g,
+    // Restrict hrefs to http/https/ftp — prevents javascript: injection from LLM output
+    html = html.replace(/\\[([^\\]]+)\\]\\(((?:https?|ftp):\\/\\/[^)]+)\\)/g,
                         '<a href="$2" target="_blank" rel="noopener">$1</a>');
     box.innerHTML = html;
 }
@@ -419,73 +418,6 @@ _REPORT_PLACEHOLDER_HTML = (
     " — your map will appear here.</em></p>"
 )
 
-
-def _md_to_html(text: str) -> str:
-    """Convert a minimal Markdown subset to HTML for gr.HTML display.
-
-    Handles: ATX headers, bullet lists, bold/italic inline, bare links, paragraphs.
-    HTML-escapes content first so injected text is safe.
-    """
-    if not text:
-        return ""
-
-    lines = text.split("\n")
-    out: list[str] = []
-    in_ul = False
-
-    for line in lines:
-        safe = _html_lib.escape(line)
-
-        if safe.startswith("#### "):
-            if in_ul:
-                out.append("</ul>")
-                in_ul = False
-            out.append(f"<h4>{safe[5:]}</h4>")
-        elif safe.startswith("### "):
-            if in_ul:
-                out.append("</ul>")
-                in_ul = False
-            out.append(f"<h3>{safe[4:]}</h3>")
-        elif safe.startswith("## "):
-            if in_ul:
-                out.append("</ul>")
-                in_ul = False
-            out.append(f"<h2>{safe[3:]}</h2>")
-        elif safe.startswith("# "):
-            if in_ul:
-                out.append("</ul>")
-                in_ul = False
-            out.append(f"<h1>{safe[2:]}</h1>")
-        elif safe.startswith("- "):
-            if not in_ul:
-                out.append("<ul>")
-                in_ul = True
-            out.append(f"<li>{safe[2:]}</li>")
-        elif not safe.strip():
-            if in_ul:
-                out.append("</ul>")
-                in_ul = False
-        else:
-            if in_ul:
-                out.append("</ul>")
-                in_ul = False
-            out.append(f"<p>{safe}</p>")
-
-    if in_ul:
-        out.append("</ul>")
-
-    result = "\n".join(out)
-    # Inline bold+italic, bold, italic (order matters)
-    result = _re.sub(r"\*\*\*(.+?)\*\*\*", r"<strong><em>\1</em></strong>", result)
-    result = _re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", result)
-    result = _re.sub(r"\*([^*\n]+?)\*", r"<em>\1</em>", result)
-    # Links [text](url)
-    result = _re.sub(
-        r"\[([^\]]+)\]\(([^)]+)\)",
-        r'<a href="\2" target="_blank" rel="noopener">\1</a>',
-        result,
-    )
-    return result
 
 
 # ── History helpers ────────────────────────────────────────────────────────────
@@ -716,7 +648,7 @@ with gr.Blocks(title="Cartograph") as demo:
     # interactive textboxes, which blocks SSE updates reaching the DOM).
     # Must NOT use off-screen CSS (position:absolute; left:-9999px) — that
     # removes it from the document flow and Gradio's Svelte runtime then skips
-    # DOM updates for it.  Collapsed to zero-height via in-flow CSS instead.
+    # DOM updates for it.  Hidden via opacity:0 in CSS so it stays in-flow.
     report_txt = gr.Textbox(
         value="", interactive=False, visible=True,
         elem_id="report-txt", label="", lines=1,
