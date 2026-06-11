@@ -1,0 +1,86 @@
+# CI for Cartograph.
+#
+# Every job's `name:` becomes a required-status-check context on `main`
+# (matrix jobs expand to "Name (3.11)", "Name (3.12)", ...). The canonical
+# list of required checks lives in CONTRIBUTING.md between the
+# required-checks markers, and the "Required checks in sync" job fails the
+# build if this file, CONTRIBUTING.md, or live branch protection drift apart.
+#
+# If you add/rename/remove a job here, update the CONTRIBUTING.md block AND
+# the branch-protection required contexts in the same PR.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --extra dev
+      - name: Ruff
+        run: uv run ruff check src/ app.py
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: uv sync --extra dev
+      - name: Pytest
+        run: PYTHONPATH=. uv run pytest tests/ -v
+
+  smoke:
+    name: Smoke
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --extra dev
+      - name: Import app (builds the Gradio UI without launching)
+        run: uv run python -c "import app; print('app imported OK')"
+
+  check-sync:
+    name: Required checks in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PyYAML
+        run: pip install pyyaml
+      - name: Verify CI jobs, CONTRIBUTING.md, and branch protection agree
+        env:
+          # Optional admin PAT; when unset the live branch-protection
+          # comparison is skipped (so this still passes on forks).
+          CHECKS_SYNC_TOKEN: ${{ secrets.CHECKS_SYNC_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python .github/scripts/check_required_checks.py
