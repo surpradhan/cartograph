@@ -85,10 +85,20 @@ def test_error_report_returns_hidden():
     app_module.save_run.assert_not_called()
 
 
-def test_placeholder_report_returns_hidden():
+def test_drop_a_pin_status_returns_hidden():
+    # The "Drop a pin" string is the empty-query status message; it must be
+    # rejected by the startswith("Drop a pin") guard.
     _hist, row_update, _dl = _run_after_research(
         "Drop a pin on your research topic above."
     )
+    assert row_update["visible"] is False
+    app_module.save_run.assert_not_called()
+
+
+def test_report_placeholder_returns_hidden():
+    # The report-box placeholder ("*Plant a pin...*") is caught by the separate
+    # `report != _REPORT_PLACEHOLDER` guard, not the startswith check.
+    _hist, row_update, _dl = _run_after_research(app_module._REPORT_PLACEHOLDER)
     assert row_update["visible"] is False
     app_module.save_run.assert_not_called()
 

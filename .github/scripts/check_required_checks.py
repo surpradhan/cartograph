@@ -71,8 +71,18 @@ def contexts_from_contributing() -> set[str]:
     return set(re.findall(r"`([^`]+)`", text[start:end]))
 
 
-def contexts_from_branch_protection(token: str, repo: str) -> set[str] | None:
-    """Fetch live required contexts; returns None if inaccessible."""
+_UNREACHABLE = object()  # sentinel: the live check could not be performed
+
+
+def contexts_from_branch_protection(token: str, repo: str):
+    """Fetch live required contexts.
+
+    Returns a set of context names on success, or the _UNREACHABLE sentinel
+    when the API could not be queried (network/rate-limit/5xx/auth) — callers
+    treat that as "skip the live check" rather than a mismatch, so an unrelated
+    GitHub hiccup never blocks merges. A genuine 404 (no protection on the
+    branch) returns an empty set, which fails closed against a non-empty ci.yml.
+    """
     url = f"https://api.github.com/repos/{repo}/branches/{PROTECTED_BRANCH}/protection"
     req = urllib.request.Request(
         url,
@@ -87,11 +97,24 @@ def contexts_from_branch_protection(token: str, repo: str) -> set[str] | None:
             data = json.load(resp)
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
-            # 404 = branch protection not configured (or token lacks scope).
-            print(f"warning: no branch protection found on '{PROTECTED_BRANCH}' "
-                  f"(HTTP 404) — treating as empty set")
+            # GitHub returns 404 both when protection is genuinely absent AND
+            # when the token lacks admin-read scope — they're indistinguishable
+            # here. Treat as an empty set (fails closed): if you set the token
+            # you intend protection to exist, so a real mismatch surfaces.
+            print(f"warning: branch protection on '{PROTECTED_BRANCH}' returned "
+                  f"HTTP 404 — either it is not configured, or CHECKS_SYNC_TOKEN "
+                  f"lacks Administration:read scope. Treating as empty set.")
             return set()
-        sys.exit(f"error: branch-protection API call failed: HTTP {exc.code}")
+        # 401/403/429/5xx etc. — transient or auth issues unrelated to drift.
+        # Don't fail the build on these; the credential-free ci-vs-docs check
+        # is the real guard and has already run.
+        print(f"warning: branch-protection API call failed (HTTP {exc.code}) — "
+              f"skipping live branch-protection check")
+        return _UNREACHABLE
+    except urllib.error.URLError as exc:
+        print(f"warning: could not reach the GitHub API ({exc.reason}) — "
+              f"skipping live branch-protection check")
+        return _UNREACHABLE
     checks = data.get("required_status_checks") or {}
     return set(checks.get("contexts") or [])
 
@@ -116,11 +139,19 @@ def main() -> int:
     ok = report_diff("ci.yml", ci, "CONTRIBUTING.md", docs)
 
     token = os.environ.get("CHECKS_SYNC_TOKEN")
+    # In CI this is always set; the default only matters for local `python
+    # .github/scripts/...` runs. A fork running locally without exporting
+    # GITHUB_REPOSITORY would query the upstream repo — set it if that's wrong.
     repo = os.environ.get("GITHUB_REPOSITORY", "surpradhan/cartograph")
     if token:
         live = contexts_from_branch_protection(token, repo)
-        print(f"branch-protection contexts: {sorted(live)}")
-        ok = report_diff("ci.yml", ci, "branch protection", live) and ok
+        if live is _UNREACHABLE:
+            pass  # already warned; the live check is a bonus, not a gate
+        else:
+            print(f"branch-protection contexts: {sorted(live)}")
+            # Anchored on ci (not docs) because ci-vs-docs is already enforced
+            # above; with that holding, ci == live implies docs == live.
+            ok = report_diff("ci.yml", ci, "branch protection", live) and ok
     else:
         print("CHECKS_SYNC_TOKEN not set — skipping live branch-protection check")
 
