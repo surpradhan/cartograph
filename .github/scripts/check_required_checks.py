@@ -115,6 +115,16 @@ def contexts_from_branch_protection(token: str, repo: str):
         print(f"warning: could not reach the GitHub API ({exc.reason}) — "
               f"skipping live branch-protection check")
         return _UNREACHABLE
+    except (TimeoutError, OSError, json.JSONDecodeError) as exc:
+        # Catch-all for the remaining best-effort failure modes that aren't
+        # URLError subclasses: a bare read-timeout (TimeoutError), low-level
+        # socket errors (ConnectionResetError, ...), and a 200 with a non-JSON
+        # body (proxy/incident HTML, truncated response). None of these signal
+        # drift, so skip rather than fail the build. URLError is itself an
+        # OSError subclass, so it must be (and is) handled above this.
+        print(f"warning: branch-protection check failed ({exc}) — "
+              f"skipping live branch-protection check")
+        return _UNREACHABLE
     checks = data.get("required_status_checks") or {}
     return set(checks.get("contexts") or [])
 
