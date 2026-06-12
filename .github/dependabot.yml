@@ -21,3 +21,9 @@ updates:
     # Match this repo's `<type>: <subject>` convention (see CONTRIBUTING.md).
     commit-message:
       prefix: "chore"
+    # Batch all action bumps into one weekly PR instead of one PR per action,
+    # so a routine update fires a single CI matrix run, not three.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
