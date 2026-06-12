@@ -76,7 +76,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install PyYAML
-        run: pip install pyyaml
+        # Version-pinned to keep this job's one dependency reproducible, in the
+        # same supply-chain spirit as the SHA-pinned actions above.
+        run: pip install pyyaml==6.0.3
       - name: Verify CI jobs, CONTRIBUTING.md, and branch protection agree
         env:
           # Optional admin PAT; when unset the live branch-protection
