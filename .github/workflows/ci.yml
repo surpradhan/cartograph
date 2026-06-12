@@ -26,8 +26,8 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8.2.0  # no bare-major v8 tag published; pin the release
         with:
           enable-cache: true
       - name: Install dependencies
@@ -43,8 +43,8 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8.2.0  # no bare-major v8 tag published; pin the release
         with:
           enable-cache: true
           python-version: ${{ matrix.python-version }}
@@ -58,8 +58,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test]
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v8.2.0  # no bare-major v8 tag published; pin the release
         with:
           enable-cache: true
       - name: Install dependencies
@@ -71,8 +71,8 @@ jobs:
     name: Required checks in sync
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install PyYAML
