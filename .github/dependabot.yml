@@ -13,6 +13,11 @@
 # releases, and opens a PR that bumps BOTH the pinned SHA and the comment —
 # keeping us pinned *and* current. Bump PRs run through the same required
 # checks and human review as any other change (we never self-merge).
+#
+# The same logic applies to the uv ecosystem below: pyproject.toml lower
+# bounds and uv.lock would otherwise drift, silently missing upstream security
+# and bug-fix releases on our Python deps. Dependabot opens lockfile-bumping
+# PRs that flow through the same checks and review.
 version: 2
 updates:
   - package-ecosystem: "github-actions"
@@ -38,6 +43,9 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "chore"
+    # Grouped minor/patch is one PR; the rest of this budget caps how many
+    # individual major-bump PRs can be open at once (explicit, not the default).
+    open-pull-requests-limit: 5
     # Batch routine minor/patch bumps into a single weekly PR (one CI run),
     # but let major bumps open individually — they're more likely to break and
     # deserve their own review and CI matrix.
