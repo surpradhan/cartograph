@@ -1,0 +1,29 @@
+# Dependabot configuration — keeps our SHA-pinned GitHub Actions current.
+#
+# CI pins every `uses:` in .github/workflows/ci.yml to a full 40-char commit
+# SHA with a trailing `# vX.Y.Z` version comment. That pinning is our defence
+# against the tj-actions class of mutable-tag attack (a compromised action repo
+# re-pointing a tag like `@v6` at malicious code). The trade-off: a SHA never
+# moves on its own, so without automation we silently miss upstream security
+# and bug-fix releases.
+#
+# Dependabot closes that gap. It reads the version comment, discovers newer
+# releases, and opens a PR that bumps BOTH the pinned SHA and the comment —
+# keeping us pinned *and* current. Bump PRs run through the same required
+# checks and human review as any other change (we never self-merge).
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    # Actions are discovered from .github/workflows/; "/" is the repo root.
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Match this repo's `<type>: <subject>` convention (see CONTRIBUTING.md).
+    commit-message:
+      prefix: "chore"
+    # Batch all action bumps into one weekly PR instead of one PR per action,
+    # so a routine update fires a single CI matrix run, not three.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
